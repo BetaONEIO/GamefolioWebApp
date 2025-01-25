@@ -1,6 +1,7 @@
 import React from 'react';
 import { GameClip } from '../types';
 import { X, Heart, MessageCircle, Share2, Send } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 interface ClipLightboxProps {
   clip: GameClip;
@@ -34,14 +35,21 @@ export default function ClipLightbox({ clip, onClose }: ClipLightboxProps) {
           {/* Clip Info */}
           <div className="p-4 border-b border-gray-800">
             <div className="flex items-center space-x-3 mb-3">
-              <img
-                src={clip.userAvatar}
-                alt={clip.username}
-                className="w-10 h-10 rounded-full"
-              />
+              <Link to={`/user/${clip.userId}`}>
+                <img
+                  src={clip.userAvatar}
+                  alt={clip.username}
+                  className="w-10 h-10 rounded-full hover:ring-2 hover:ring-[#9FE64F] transition-all"
+                />
+              </Link>
               <div>
                 <h3 className="font-medium text-white">{clip.title}</h3>
-                <p className="text-sm text-gray-400">{clip.username}</p>
+                <Link 
+                  to={`/user/${clip.userId}`}
+                  className="text-sm text-gray-400 hover:text-[#9FE64F] transition-colors"
+                >
+                  {clip.username}
+                </Link>
               </div>
             </div>
             <p className="text-sm text-gray-300 mt-2">
@@ -53,14 +61,21 @@ export default function ClipLightbox({ clip, onClose }: ClipLightboxProps) {
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {/* Sample Comments */}
             <div className="flex space-x-3">
-              <img
-                src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100"
-                alt="Commenter"
-                className="w-8 h-8 rounded-full"
-              />
+              <Link to="/user/commenter1">
+                <img
+                  src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100"
+                  alt="Commenter"
+                  className="w-8 h-8 rounded-full hover:ring-2 hover:ring-[#9FE64F] transition-all"
+                />
+              </Link>
               <div>
                 <p className="text-sm">
-                  <span className="font-medium text-white">GameMaster</span>
+                  <Link 
+                    to="/user/commenter1"
+                    className="font-medium text-white hover:text-[#9FE64F] transition-colors"
+                  >
+                    GameMaster
+                  </Link>
                   <span className="text-gray-400 ml-2">Insane play! 🔥</span>
                 </p>
                 <div className="flex items-center space-x-3 mt-1 text-xs text-gray-500">
@@ -72,14 +87,21 @@ export default function ClipLightbox({ clip, onClose }: ClipLightboxProps) {
             </div>
 
             <div className="flex space-x-3">
-              <img
-                src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100"
-                alt="Commenter"
-                className="w-8 h-8 rounded-full"
-              />
+              <Link to="/user/commenter2">
+                <img
+                  src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100"
+                  alt="Commenter"
+                  className="w-8 h-8 rounded-full hover:ring-2 hover:ring-[#9FE64F] transition-all"
+                />
+              </Link>
               <div>
                 <p className="text-sm">
-                  <span className="font-medium text-white">ProPlayer</span>
+                  <Link 
+                    to="/user/commenter2"
+                    className="font-medium text-white hover:text-[#9FE64F] transition-colors"
+                  >
+                    ProPlayer
+                  </Link>
                   <span className="text-gray-400 ml-2">What settings are you using?</span>
                 </p>
                 <div className="flex items-center space-x-3 mt-1 text-xs text-gray-500">

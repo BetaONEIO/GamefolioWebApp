@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { GameClip } from '../types';
 import { Heart, MessageCircle, Share2 } from 'lucide-react';
 import ClipLightbox from './ClipLightbox';
+import { Link } from 'react-router-dom';
 
 interface ClipGridProps {
   clips: GameClip[];
@@ -33,14 +34,21 @@ export default function ClipGrid({ clips }: ClipGridProps) {
             
             <div className="p-4">
               <div className="flex items-center space-x-3 mb-3">
-                <img
-                  src={clip.userAvatar}
-                  alt={clip.username}
-                  className="w-8 h-8 rounded-full"
-                />
+                <Link to={`/user/${clip.userId}`}>
+                  <img
+                    src={clip.userAvatar}
+                    alt={clip.username}
+                    className="w-8 h-8 rounded-full hover:ring-2 hover:ring-[#9FE64F] transition-all"
+                  />
+                </Link>
                 <div>
                   <h3 className="font-medium text-white">{clip.title}</h3>
-                  <p className="text-sm text-gray-400">{clip.username}</p>
+                  <Link 
+                    to={`/user/${clip.userId}`}
+                    className="text-sm text-gray-400 hover:text-[#9FE64F] transition-colors"
+                  >
+                    {clip.username}
+                  </Link>
                 </div>
               </div>
               
