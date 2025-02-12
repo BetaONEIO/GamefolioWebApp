@@ -22,6 +22,7 @@ export default function TopClips() {
         .from('clips')
         .select(`
           id,
+          user_id,
           title,
           game,
           video_url,
@@ -30,8 +31,9 @@ export default function TopClips() {
           comments,
           shares,
           created_at,
-          user_id,
-          user_profiles (username)
+          user_profiles!inner (
+            username
+          )
         `)
         .order('created_at', { ascending: false })
         .limit(12);
@@ -41,7 +43,7 @@ export default function TopClips() {
       const formattedClips: GameClip[] = data.map(clip => ({
         id: clip.id,
         userId: clip.user_id,
-        username: clip.user_profiles?.username || 'Unknown User',
+        username: clip.user_profiles.username || 'Unknown User',
         userAvatar: 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=400', // Default avatar
         title: clip.title,
         videoUrl: clip.video_url,
@@ -56,6 +58,7 @@ export default function TopClips() {
       setClips(formattedClips);
     } catch (error) {
       console.error('Error loading clips:', error);
+      setClips([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
