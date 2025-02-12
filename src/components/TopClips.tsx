@@ -1,57 +1,65 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ClipGrid from './ClipGrid';
 import { GameClip } from '../types';
-
-// Mock data - replace with real data from Supabase
-const mockClips: GameClip[] = [
-  {
-    id: '1',
-    userId: '1',
-    username: 'ProGamer123',
-    userAvatar: 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=400',
-    title: 'Insane 1v5 Clutch!',
-    videoUrl: '#',
-    thumbnail: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800',
-    game: 'Valorant',
-    likes: 12000,
-    comments: 890,
-    shares: 450,
-    createdAt: '2024-02-20T12:00:00Z'
-  },
-  {
-    id: '2',
-    userId: '2',
-    username: 'GamingQueen',
-    userAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400',
-    title: 'Epic Pentakill',
-    videoUrl: '#',
-    thumbnail: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=800',
-    game: 'League of Legends',
-    likes: 8500,
-    comments: 456,
-    shares: 289,
-    createdAt: '2024-02-19T15:30:00Z'
-  },
-  {
-    id: '3',
-    userId: '3',
-    username: 'SpeedRunner',
-    userAvatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400',
-    title: 'New World Record!',
-    videoUrl: '#',
-    thumbnail: 'https://images.unsplash.com/photo-1542751110-97427bbecf20?w=800',
-    game: 'Elden Ring',
-    likes: 15890,
-    comments: 967,
-    shares: 723,
-    createdAt: '2024-02-18T22:15:00Z'
-  }
-];
+import { supabase } from '../lib/supabase';
+import { Loader2 } from 'lucide-react';
 
 type TimeRange = 'day' | 'week' | 'month';
 
 export default function TopClips() {
   const [timeRange, setTimeRange] = useState<TimeRange>('day');
+  const [clips, setClips] = useState<GameClip[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadClips();
+  }, [timeRange]);
+
+  async function loadClips() {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('clips')
+        .select(`
+          id,
+          title,
+          game,
+          video_url,
+          thumbnail_url,
+          likes,
+          comments,
+          shares,
+          created_at,
+          user_id,
+          user_profiles (username)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(12);
+
+      if (error) throw error;
+
+      const formattedClips: GameClip[] = data.map(clip => ({
+        id: clip.id,
+        userId: clip.user_id,
+        username: clip.user_profiles?.username || 'Unknown User',
+        userAvatar: 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=400', // Default avatar
+        title: clip.title,
+        videoUrl: clip.video_url,
+        thumbnail: clip.thumbnail_url || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800', // Default thumbnail
+        game: clip.game,
+        likes: clip.likes || 0,
+        comments: clip.comments || 0,
+        shares: clip.shares || 0,
+        createdAt: clip.created_at
+      }));
+
+      setClips(formattedClips);
+    } catch (error) {
+      console.error('Error loading clips:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <div>
@@ -73,7 +81,18 @@ export default function TopClips() {
           ))}
         </div>
       </div>
-      <ClipGrid clips={mockClips} />
+
+      {loading ? (
+        <div className="flex justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-[#9FE64F]" />
+        </div>
+      ) : clips.length > 0 ? (
+        <ClipGrid clips={clips} />
+      ) : (
+        <div className="text-center py-12 text-gray-400">
+          <p>No clips found. Be the first to upload!</p>
+        </div>
+      )}
     </div>
   );
 }

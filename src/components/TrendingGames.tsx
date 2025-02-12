@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Trophy, Users, TrendingUp } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 interface TrendingGame {
   id: string;
@@ -10,48 +11,75 @@ interface TrendingGame {
   trending: number;
 }
 
-// Mock data - replace with real data from Supabase
-const mockTrendingGames: TrendingGame[] = [
-  {
-    id: '1',
-    name: 'Valorant',
-    thumbnail: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400',
-    activePlayers: 125000,
-    clipCount: 8500,
-    trending: 25,
-  },
-  {
-    id: '2',
-    name: 'League of Legends',
-    thumbnail: 'https://images.unsplash.com/photo-1542751110-97427bbecf20?w=400',
-    activePlayers: 245000,
-    clipCount: 12400,
-    trending: 15,
-  },
-  {
-    id: '3',
-    name: 'Elden Ring',
-    thumbnail: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400',
-    activePlayers: 89000,
-    clipCount: 6200,
-    trending: 40,
-  },
-  {
-    id: '4',
-    name: 'Counter-Strike 2',
-    thumbnail: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400',
-    activePlayers: 185000,
-    clipCount: 9800,
-    trending: 10,
-  },
+const defaultThumbnails = [
+  'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400',
+  'https://images.unsplash.com/photo-1542751110-97427bbecf20?w=400',
+  'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400'
 ];
 
 export default function TrendingGames() {
+  const [games, setGames] = useState<TrendingGame[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadTrendingGames();
+  }, []);
+
+  async function loadTrendingGames() {
+    try {
+      setLoading(true);
+      
+      // Get unique games and their clip counts
+      const { data, error } = await supabase
+        .from('clips')
+        .select('game, count')
+        .group('game')
+        .order('count', { ascending: false })
+        .limit(4);
+
+      if (error) throw error;
+
+      const trendingGames: TrendingGame[] = data.map((game, index) => ({
+        id: index.toString(),
+        name: game.game,
+        thumbnail: defaultThumbnails[index % defaultThumbnails.length],
+        activePlayers: Math.floor(Math.random() * 200000) + 50000, // Mock data
+        clipCount: parseInt(game.count),
+        trending: Math.floor(Math.random() * 40) + 10 // Mock trending percentage
+      }));
+
+      setGames(trendingGames);
+    } catch (error) {
+      console.error('Error loading trending games:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div>
+        <h2 className="text-2xl font-bold text-white mb-6">Trending Games</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="bg-gray-900 rounded-lg overflow-hidden animate-pulse">
+              <div className="aspect-video bg-gray-800" />
+              <div className="p-4">
+                <div className="h-4 bg-gray-800 rounded w-2/3 mb-3" />
+                <div className="h-4 bg-gray-800 rounded w-1/2" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <h2 className="text-2xl font-bold text-white mb-6">Trending Games</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {mockTrendingGames.map((game) => (
+        {games.map((game) => (
           <div
             key={game.id}
             className="bg-gray-900 rounded-lg overflow-hidden hover:ring-2 hover:ring-[#9FE64F] transition-all"
