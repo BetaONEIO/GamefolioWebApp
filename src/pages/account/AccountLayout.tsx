@@ -1,6 +1,8 @@
 import React from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
-import { Home, Trophy, User, Settings as SettingsIcon, Compass } from 'lucide-react';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { Home, Trophy, User, Settings as SettingsIcon, Compass, Shield } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../lib/supabase';
 
 const navItems = [
   { to: '/account', icon: Home, label: 'My Gamefolio', end: true },
@@ -11,12 +13,49 @@ const navItems = [
 ];
 
 export default function AccountLayout() {
+  const { session } = useAuth();
+  const [isAdmin, setIsAdmin] = React.useState(false);
+  const navigate = useNavigate();
+
+  React.useEffect(() => {
+    async function checkAdminStatus() {
+      if (!session?.user) {
+        navigate('/');
+        return;
+      }
+
+      try {
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', session.user.id)
+          .single();
+
+        setIsAdmin(roleData?.role === 'admin');
+      } catch (error) {
+        console.error('Error checking admin status:', error);
+      }
+    }
+
+    checkAdminStatus();
+  }, [session, navigate]);
+
+  const allNavItems = React.useMemo(() => {
+    if (isAdmin) {
+      return [
+        ...navItems,
+        { to: '/account/admin', icon: Shield, label: 'Admin' }
+      ];
+    }
+    return navItems;
+  }, [isAdmin]);
+
   return (
     <div className="flex min-h-screen pt-16">
       {/* Sidebar */}
       <aside className="w-64 bg-gray-900 border-r border-gray-800 fixed left-0 h-[calc(100vh-4rem)] top-16">
         <nav className="p-4">
-          {navItems.map(({ to, icon: Icon, label, end }) => (
+          {allNavItems.map(({ to, icon: Icon, label, end }) => (
             <NavLink
               key={to}
               to={to}

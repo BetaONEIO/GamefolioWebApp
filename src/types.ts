@@ -29,3 +29,29 @@ export interface Game {
   name: string;
   slug: string;
 }
+
+export interface ActivityLog {
+  id: string;
+  userId: string;
+  actionType: string;
+  resourceType: string;
+  resourceId: string;
+  details: Record<string, any>;
+  createdAt: string;
+}
+
+export interface UserRole {
+  userId: string;
+  role: 'admin' | 'user';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UserProfile {
+  userId: string;
+  username: string | null;
+  onboardingCompleted: boolean;
+  favoriteGames: string[];
+  createdAt: string;
+  updatedAt: string;
+}
