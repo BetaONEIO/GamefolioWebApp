@@ -6,7 +6,10 @@ export async function signUp(email: string, password: string) {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/account`
+        emailRedirectTo: `${window.location.origin}/account`,
+        data: {
+          email_confirmed: false
+        }
       }
     });
     
@@ -32,6 +35,9 @@ export async function signIn(email: string, password: string) {
     if (error) {
       if (error.message === 'Invalid login credentials') {
         throw new Error('Invalid email or password');
+      }
+      if (error.message === 'Email not confirmed') {
+        throw new Error('Please verify your email before signing in');
       }
       throw error;
     }

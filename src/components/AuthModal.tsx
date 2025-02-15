@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Loader2, Eye, EyeOff } from 'lucide-react';
+import { X, Loader2, Eye, EyeOff, Mail } from 'lucide-react';
 import { signIn, signUp } from '../lib/auth';
 
 interface AuthModalProps {
@@ -16,7 +16,7 @@ const PASSWORD_REQUIREMENTS = [
 ];
 
 export default function AuthModal({ onClose, defaultMode = 'login' }: AuthModalProps) {
-  const [mode, setMode] = useState<'login' | 'signup'>(defaultMode);
+  const [mode, setMode] = useState<'login' | 'signup' | 'check-email'>(defaultMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -59,16 +59,51 @@ export default function AuthModal({ onClose, defaultMode = 'login' }: AuthModalP
     try {
       if (mode === 'signup') {
         await signUp(email, password);
+        setMode('check-email');
       } else {
         await signIn(email, password);
+        onClose();
       }
-      onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Authentication failed');
     } finally {
       setLoading(false);
     }
   };
+
+  if (mode === 'check-email') {
+    return (
+      <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4">
+        <div className="bg-gray-900 rounded-lg max-w-md w-full p-6 relative">
+          <button 
+            onClick={onClose}
+            className="absolute top-4 right-4 text-gray-400 hover:text-white"
+          >
+            <X className="w-6 h-6" />
+          </button>
+
+          <div className="text-center space-y-4">
+            <div className="w-12 h-12 bg-[#9FE64F]/20 rounded-full flex items-center justify-center mx-auto">
+              <Mail className="w-6 h-6 text-[#9FE64F]" />
+            </div>
+            <h2 className="text-2xl font-bold text-white">Check Your Email</h2>
+            <p className="text-gray-400">
+              We've sent a verification link to <span className="text-white">{email}</span>. 
+              Please check your email and click the link to verify your account.
+            </p>
+            <div className="pt-4">
+              <button
+                onClick={() => setMode('login')}
+                className="text-[#9FE64F] hover:text-[#8FD63F] font-medium"
+              >
+                Back to Sign In
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4">

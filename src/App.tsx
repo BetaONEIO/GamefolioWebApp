@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { supabase } from './lib/supabase';
 import Header from './components/Header';
@@ -15,6 +15,35 @@ import UserProfile from './pages/UserProfile';
 import OnboardingModal from './components/OnboardingModal';
 import UsernameSetupModal from './components/UsernameSetupModal';
 import { UserProfile as UserProfileType } from './types';
+
+function PageTitle() {
+  const location = useLocation();
+  const { session } = useAuth();
+
+  useEffect(() => {
+    let title = 'Gamefolio';
+    const path = location.pathname;
+
+    // Add specific titles based on routes
+    if (path === '/') {
+      title = 'Gamefolio - Share Your Gaming Moments';
+    } else if (path.startsWith('/account')) {
+      if (path === '/account') title = 'My Gamefolio';
+      else if (path === '/account/leaderboard') title = 'Leaderboard - Gamefolio';
+      else if (path === '/account/profile') title = 'Profile - Gamefolio';
+      else if (path === '/account/settings') title = 'Settings - Gamefolio';
+      else if (path === '/account/explore') title = 'Explore - Gamefolio';
+      else if (path === '/account/admin') title = 'Admin Dashboard - Gamefolio';
+    } else if (path.startsWith('/user/')) {
+      // For user profiles, we could potentially fetch the username here
+      title = 'User Profile - Gamefolio';
+    }
+
+    document.title = title;
+  }, [location]);
+
+  return null;
+}
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { session } = useAuth();
@@ -75,6 +104,7 @@ function App() {
   return (
     <AuthProvider>
       <Router>
+        <PageTitle />
         <div className="min-h-screen bg-black text-white">
           <Header />
           <Routes>
