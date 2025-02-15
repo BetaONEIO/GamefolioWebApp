@@ -13,12 +13,19 @@ export async function signUp(email: string, password: string) {
       }
     });
     
-    if (error) throw error;
+    if (error) {
+      if (error.message.includes('Email rate limit exceeded')) {
+        throw new Error('Too many signup attempts. Please try again later.');
+      }
+      throw error;
+    }
 
-    // Wait a moment to ensure the trigger has time to create the profile
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Check if email confirmation is required
+    if (data.user && !data.user.confirmed_at) {
+      return { data, emailConfirmationRequired: true };
+    }
 
-    return data;
+    return { data, emailConfirmationRequired: false };
   } catch (error) {
     console.error('Signup error:', error);
     throw error;
@@ -91,4 +98,18 @@ export function onAuthStateChange(callback: (session: any) => void) {
   return supabase.auth.onAuthStateChange((_event, session) => {
     callback(session);
   });
+}
+
+export async function resendConfirmationEmail(email: string) {
+  try {
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+    });
+    
+    if (error) throw error;
+  } catch (error) {
+    console.error('Error resending confirmation email:', error);
+    throw error;
+  }
 }
