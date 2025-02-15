@@ -1,9 +1,14 @@
 import React, { useState, useRef } from 'react';
-import { X, Upload as UploadIcon, Loader2 } from 'lucide-react';
+import { X, Upload as UploadIcon, Loader2, Globe, User } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface UploadModalProps {
   onClose: () => void;
+}
+
+interface UploadDestinations {
+  feed: boolean;
+  gamefolio: boolean;
 }
 
 export default function UploadModal({ onClose }: UploadModalProps) {
@@ -11,6 +16,10 @@ export default function UploadModal({ onClose }: UploadModalProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [title, setTitle] = useState('');
   const [game, setGame] = useState('');
+  const [destinations, setDestinations] = useState<UploadDestinations>({
+    feed: true,
+    gamefolio: false
+  });
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -43,6 +52,17 @@ export default function UploadModal({ onClose }: UploadModalProps) {
     }
   };
 
+  const toggleDestination = (dest: keyof UploadDestinations) => {
+    setDestinations(prev => {
+      const newDestinations = { ...prev, [dest]: !prev[dest] };
+      // Ensure at least one destination is selected
+      if (!newDestinations.feed && !newDestinations.gamefolio) {
+        return prev;
+      }
+      return newDestinations;
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedFile || !title || !game) return;
@@ -54,6 +74,18 @@ export default function UploadModal({ onClose }: UploadModalProps) {
       // Get the current user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
+
+      // Check if user has a username set
+      const { data: profile, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('username')
+        .eq('user_id', user.id)
+        .single();
+
+      if (profileError) throw profileError;
+      if (!profile.username) {
+        throw new Error('Please set your username before uploading clips');
+      }
 
       // Upload video to storage
       const videoFileName = `${user.id}/${Date.now()}-${selectedFile.name}`;
@@ -76,6 +108,7 @@ export default function UploadModal({ onClose }: UploadModalProps) {
           title,
           game,
           video_url: videoUrl,
+          visibility: destinations.feed ? 'public' : 'private'
         });
 
       if (dbError) throw dbError;
@@ -186,6 +219,40 @@ export default function UploadModal({ onClose }: UploadModalProps) {
                 disabled={uploading}
               />
             </div>
+
+            <div>
+              <label className="block text-sm font-medium text-white mb-2">
+                Share to
+              </label>
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  type="button"
+                  onClick={() => toggleDestination('feed')}
+                  className={`p-4 rounded-lg border-2 transition-colors ${
+                    destinations.feed
+                      ? 'border-[#9FE64F] bg-[#9FE64F]/10'
+                      : 'border-gray-700 hover:border-[#9FE64F]'
+                  }`}
+                >
+                  <Globe className="w-6 h-6 mx-auto mb-2 text-[#9FE64F]" />
+                  <div className="text-white font-medium">Clips Feed</div>
+                  <p className="text-sm text-gray-400 mt-1">Share with everyone</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => toggleDestination('gamefolio')}
+                  className={`p-4 rounded-lg border-2 transition-colors ${
+                    destinations.gamefolio
+                      ? 'border-[#9FE64F] bg-[#9FE64F]/10'
+                      : 'border-gray-700 hover:border-[#9FE64F]'
+                  }`}
+                >
+                  <User className="w-6 h-6 mx-auto mb-2 text-[#9FE64F]" />
+                  <div className="text-white font-medium">My Gamefolio</div>
+                  <p className="text-sm text-gray-400 mt-1">Add to your profile</p>
+                </button>
+              </div>
+            </div>
           </div>
 
           <div className="flex justify-end space-x-4">
@@ -199,7 +266,7 @@ export default function UploadModal({ onClose }: UploadModalProps) {
             </button>
             <button
               type="submit"
-              disabled={!selectedFile || !title || !game || uploading}
+              disabled={!selectedFile || !title || !game || uploading || (!destinations.feed && !destinations.gamefolio)}
               className="bg-[#9FE64F] hover:bg-[#8FD63F] text-black px-6 py-2 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
             >
               {uploading ? (
