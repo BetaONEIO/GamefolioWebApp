@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import Profile from '../components/Profile';
 import ClipGrid from '../components/ClipGrid';
+import { supabase } from '../lib/supabase';
 
 // Mock data - replace with Supabase data fetching
 const getMockUserData = (userId: string) => ({
@@ -50,6 +51,29 @@ export default function UserProfile() {
   const { userId } = useParams();
   const user = getMockUserData(userId!);
   const clips = getMockUserClips(userId!);
+
+  useEffect(() => {
+    // Update page title with username when available
+    const fetchUsername = async () => {
+      if (!userId) return;
+
+      try {
+        const { data } = await supabase
+          .from('user_profiles')
+          .select('username')
+          .eq('user_id', userId)
+          .single();
+
+        if (data?.username) {
+          document.title = `${data.username} - Gamefolio`;
+        }
+      } catch (error) {
+        console.error('Error fetching username:', error);
+      }
+    };
+
+    fetchUsername();
+  }, [userId]);
 
   return (
     <div className="min-h-screen bg-black">
