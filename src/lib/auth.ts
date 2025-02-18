@@ -11,14 +11,20 @@ function logAuthError(action: string, error: any, details?: Record<string, any>)
 }
 
 export async function signUp(email: string, password: string) {
-  console.log('Attempting signup:', { email, timestamp: new Date().toISOString() });
+  const redirectTo = `${window.location.origin}/account`;
+  
+  console.log('Attempting signup:', { 
+    email, 
+    timestamp: new Date().toISOString(),
+    redirectUrl: redirectTo
+  });
   
   try {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: 'https://app.gamefolio.com/account',
+        emailRedirectTo: redirectTo,
         data: {
           email_confirmed: false
         }
@@ -28,7 +34,7 @@ export async function signUp(email: string, password: string) {
     if (error) {
       logAuthError('signup', error, {
         email,
-        redirectUrl: 'https://app.gamefolio.com/account'
+        redirectUrl: redirectTo
       });
       
       if (error.message.includes('Email rate limit exceeded')) {
@@ -37,11 +43,22 @@ export async function signUp(email: string, password: string) {
       throw error;
     }
 
-    console.log('Signup successful:', {
+    // Log detailed signup response
+    console.log('Signup response:', {
       userId: data.user?.id,
-      emailConfirmationRequired: true,
+      email: data.user?.email,
+      emailConfirmed: data.user?.email_confirmed_at,
+      identities: data.user?.identities,
       timestamp: new Date().toISOString()
     });
+
+    // Check if confirmation was sent
+    if (data.user && !data.user.email_confirmed_at) {
+      console.log('Email confirmation required:', {
+        email: data.user.email,
+        timestamp: new Date().toISOString()
+      });
+    }
 
     return { data, emailConfirmationRequired: true };
   } catch (error) {

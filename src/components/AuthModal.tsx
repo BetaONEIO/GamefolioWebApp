@@ -15,6 +15,8 @@ const PASSWORD_REQUIREMENTS = [
   { regex: /[^A-Za-z0-9]/, text: 'Contains at least one special character' },
 ];
 
+const RATE_LIMIT_COOLDOWN = 60; // 60 seconds cooldown
+
 export default function AuthModal({ onClose, defaultMode = 'login' }: AuthModalProps) {
   const [mode, setMode] = useState<'login' | 'signup' | 'check-email'>(defaultMode);
   const [email, setEmail] = useState('');
@@ -25,9 +27,22 @@ export default function AuthModal({ onClose, defaultMode = 'login' }: AuthModalP
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cooldownTime, setCooldownTime] = useState(0);
 
   const passwordStrength = PASSWORD_REQUIREMENTS.filter(req => req.regex.test(password)).length;
   const passwordsMatch = password === confirmPassword;
+
+  React.useEffect(() => {
+    let timer: number;
+    if (cooldownTime > 0) {
+      timer = window.setInterval(() => {
+        setCooldownTime(time => time - 1);
+      }, 1000);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [cooldownTime]);
 
   const validatePassword = () => {
     if (mode === 'login') return true;
@@ -55,6 +70,11 @@ export default function AuthModal({ onClose, defaultMode = 'login' }: AuthModalP
       return;
     }
 
+    if (cooldownTime > 0) {
+      setError(`Please wait ${cooldownTime} seconds before trying again`);
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -70,19 +90,43 @@ export default function AuthModal({ onClose, defaultMode = 'login' }: AuthModalP
         onClose();
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Authentication failed');
+      if (err instanceof Error) {
+        if (err.message.includes('rate limit') || err.message.includes('Too many signup attempts')) {
+          setCooldownTime(RATE_LIMIT_COOLDOWN);
+          setError(`Too many attempts. Please wait ${RATE_LIMIT_COOLDOWN} seconds before trying again.`);
+        } else {
+          setError(err.message);
+        }
+      } else {
+        setError('Authentication failed');
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const handleResendEmail = async () => {
+    if (cooldownTime > 0) {
+      setError(`Please wait ${cooldownTime} seconds before requesting another email`);
+      return;
+    }
+
     setResending(true);
     setError(null);
     try {
       await resendConfirmationEmail(email);
+      setCooldownTime(RATE_LIMIT_COOLDOWN);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to resend confirmation email');
+      if (err instanceof Error) {
+        if (err.message.includes('rate limit')) {
+          setCooldownTime(RATE_LIMIT_COOLDOWN);
+          setError(`Too many attempts. Please wait ${RATE_LIMIT_COOLDOWN} seconds before trying again.`);
+        } else {
+          setError(err.message);
+        }
+      } else {
+        setError('Failed to resend confirmation email');
+      }
     } finally {
       setResending(false);
     }
@@ -116,13 +160,18 @@ export default function AuthModal({ onClose, defaultMode = 'login' }: AuthModalP
             <div className="pt-4 space-y-4">
               <button
                 onClick={handleResendEmail}
-                disabled={resending}
-                className="text-[#9FE64F] hover:text-[#8FD63F] font-medium flex items-center justify-center space-x-2 mx-auto"
+                disabled={resending || cooldownTime > 0}
+                className="text-[#9FE64F] hover:text-[#8FD63F] font-medium flex items-center justify-center space-x-2 mx-auto disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {resending ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
                     <span>Resending...</span>
+                  </>
+                ) : cooldownTime > 0 ? (
+                  <>
+                    <RefreshCw className="w-4 h-4" />
+                    <span>Resend in {cooldownTime}s</span>
                   </>
                 ) : (
                   <>
@@ -180,7 +229,7 @@ export default function AuthModal({ onClose, defaultMode = 'login' }: AuthModalP
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full bg-gray-800 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9FE64F]"
-              disabled={loading}
+              disabled={loading || cooldownTime > 0}
               required
             />
           </div>
@@ -192,7 +241,7 @@ export default function AuthModal({ onClose, defaultMode = 'login' }: AuthModalP
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full bg-gray-800 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9FE64F]"
-              disabled={loading}
+              disabled={loading || cooldownTime > 0}
               required
             />
             <button
@@ -215,7 +264,7 @@ export default function AuthModal({ onClose, defaultMode = 'login' }: AuthModalP
                   className={`w-full bg-gray-800 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9FE64F] ${
                     confirmPassword && !passwordsMatch ? 'border-red-500' : ''
                   }`}
-                  disabled={loading}
+                  disabled={loading || cooldownTime > 0}
                   required
                 />
                 <button
@@ -251,7 +300,7 @@ export default function AuthModal({ onClose, defaultMode = 'login' }: AuthModalP
 
           <button
             type="submit"
-            disabled={loading || (mode === 'signup' && (!passwordsMatch || passwordStrength < PASSWORD_REQUIREMENTS.length))}
+            disabled={loading || cooldownTime > 0 || (mode === 'signup' && (!passwordsMatch || passwordStrength < PASSWORD_REQUIREMENTS.length))}
             className="w-full bg-[#9FE64F] hover:bg-[#8FD63F] text-black font-medium py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
           >
             {loading ? (
@@ -259,6 +308,8 @@ export default function AuthModal({ onClose, defaultMode = 'login' }: AuthModalP
                 <Loader2 className="w-5 h-5 animate-spin" />
                 <span>{mode === 'login' ? 'Signing in...' : 'Creating account...'}</span>
               </>
+            ) : cooldownTime > 0 ? (
+              <span>Please wait {cooldownTime}s</span>
             ) : (
               <span>{mode === 'login' ? 'Sign In' : 'Create Account'}</span>
             )}
