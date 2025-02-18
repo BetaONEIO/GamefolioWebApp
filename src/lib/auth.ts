@@ -1,12 +1,24 @@
 import { supabase } from './supabase';
 
+function logAuthError(action: string, error: any, details?: Record<string, any>) {
+  console.error(`Auth Error (${action}):`, {
+    message: error.message,
+    code: error.code,
+    status: error.status,
+    details,
+    timestamp: new Date().toISOString(),
+  });
+}
+
 export async function signUp(email: string, password: string) {
+  console.log('Attempting signup:', { email, timestamp: new Date().toISOString() });
+  
   try {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/account`,
+        emailRedirectTo: 'https://app.gamefolio.com/account',
         data: {
           email_confirmed: false
         }
@@ -14,21 +26,33 @@ export async function signUp(email: string, password: string) {
     });
     
     if (error) {
+      logAuthError('signup', error, {
+        email,
+        redirectUrl: 'https://app.gamefolio.com/account'
+      });
+      
       if (error.message.includes('Email rate limit exceeded')) {
         throw new Error('Too many signup attempts. Please try again later.');
       }
       throw error;
     }
 
-    // Email confirmation is now required
+    console.log('Signup successful:', {
+      userId: data.user?.id,
+      emailConfirmationRequired: true,
+      timestamp: new Date().toISOString()
+    });
+
     return { data, emailConfirmationRequired: true };
   } catch (error) {
-    console.error('Signup error:', error);
+    logAuthError('signup_catch', error);
     throw error;
   }
 }
 
 export async function signIn(email: string, password: string) {
+  console.log('Attempting signin:', { email, timestamp: new Date().toISOString() });
+  
   try {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
@@ -36,6 +60,8 @@ export async function signIn(email: string, password: string) {
     });
     
     if (error) {
+      logAuthError('signin', error, { email });
+      
       if (error.message === 'Invalid login credentials') {
         throw new Error('Invalid email or password');
       }
@@ -45,6 +71,11 @@ export async function signIn(email: string, password: string) {
       throw error;
     }
 
+    console.log('Signin successful:', {
+      userId: data.user?.id,
+      timestamp: new Date().toISOString()
+    });
+
     // Check if user has a profile
     const { data: profile, error: profileError } = await supabase
       .from('user_profiles')
@@ -53,11 +84,18 @@ export async function signIn(email: string, password: string) {
       .single();
 
     if (profileError && profileError.code !== 'PGRST116') {
-      console.error('Error fetching profile:', profileError);
+      logAuthError('fetch_profile', profileError, {
+        userId: data.user.id
+      });
     }
 
     // If no profile exists, create one
     if (!profile) {
+      console.log('Creating profile for user:', {
+        userId: data.user.id,
+        timestamp: new Date().toISOString()
+      });
+
       const { error: createError } = await supabase
         .from('user_profiles')
         .insert([
@@ -69,43 +107,71 @@ export async function signIn(email: string, password: string) {
         ]);
 
       if (createError) {
-        console.error('Error creating profile:', createError);
+        logAuthError('create_profile', createError, {
+          userId: data.user.id
+        });
       }
     }
 
     return data;
   } catch (error) {
-    console.error('Signin error:', error);
+    logAuthError('signin_catch', error);
     throw error;
   }
 }
 
 export async function signOut() {
+  console.log('Attempting signout:', { timestamp: new Date().toISOString() });
+  
   try {
     const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    if (error) {
+      logAuthError('signout', error);
+      throw error;
+    }
+    console.log('Signout successful:', { timestamp: new Date().toISOString() });
   } catch (error) {
-    console.error('Signout error:', error);
+    logAuthError('signout_catch', error);
     throw error;
   }
 }
 
 export function onAuthStateChange(callback: (session: any) => void) {
+  console.log('Setting up auth state change listener');
+  
   return supabase.auth.onAuthStateChange((_event, session) => {
+    console.log('Auth state changed:', {
+      event: _event,
+      userId: session?.user?.id,
+      timestamp: new Date().toISOString()
+    });
     callback(session);
   });
 }
 
 export async function resendConfirmationEmail(email: string) {
+  console.log('Attempting to resend confirmation email:', {
+    email,
+    timestamp: new Date().toISOString()
+  });
+  
   try {
     const { error } = await supabase.auth.resend({
       type: 'signup',
       email,
     });
     
-    if (error) throw error;
+    if (error) {
+      logAuthError('resend_confirmation', error, { email });
+      throw error;
+    }
+    
+    console.log('Confirmation email resent successfully:', {
+      email,
+      timestamp: new Date().toISOString()
+    });
   } catch (error) {
-    console.error('Error resending confirmation email:', error);
+    logAuthError('resend_confirmation_catch', error);
     throw error;
   }
 }
