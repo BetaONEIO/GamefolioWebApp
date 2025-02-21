@@ -21,28 +21,26 @@ export async function signUp(email: string, password: string) {
   });
   
   try {
-    // Implement retry logic with exponential backoff
     const maxRetries = 3;
     let retryCount = 0;
     let lastError;
 
     while (retryCount < maxRetries) {
       try {
-        const signupPromise = supabase.auth.signUp({
+        // Use the admin API to create user
+        const signupPromise = supabase.auth.admin.createUser({
           email,
           password,
-          options: {
-            emailRedirectTo: redirectTo,
-            data: {
-              email_confirmed: false
-            }
+          email_confirm: false,
+          user_metadata: {
+            redirect_to: redirectTo
           }
         });
 
         const timeoutPromise = new Promise((_, reject) => {
           setTimeout(() => {
             reject(new Error('Request timed out. Please try again.'));
-          }, 15000); // Increased timeout to 15 seconds
+          }, 15000);
         });
 
         const { data, error } = await Promise.race([
@@ -51,7 +49,7 @@ export async function signUp(email: string, password: string) {
         ]) as any;
         
         if (error) {
-          if (error.message.includes('Email rate limit exceeded')) {
+          if (error.message.includes('rate limit')) {
             throw new Error('Too many signup attempts. Please try again later.');
           }
           throw error;
@@ -82,24 +80,20 @@ export async function signUp(email: string, password: string) {
       } catch (error) {
         lastError = error;
         
-        // Only retry on timeout or network errors
         if (error.message.includes('timeout') || error.message.includes('network')) {
           retryCount++;
           if (retryCount < maxRetries) {
-            // Exponential backoff: 1s, 2s, 4s
             const delay = Math.pow(2, retryCount - 1) * 1000;
             console.log(`Retry attempt ${retryCount} after ${delay}ms`);
             await new Promise(resolve => setTimeout(resolve, delay));
             continue;
           }
         } else {
-          // Don't retry other types of errors
           break;
         }
       }
     }
 
-    // If we get here, all retries failed
     logAuthError('signup', lastError, {
       email,
       redirectUrl: redirectTo,
