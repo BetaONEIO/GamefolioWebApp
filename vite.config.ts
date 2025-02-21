@@ -7,4 +7,7 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['lucide-react'],
   },
+  define: {
+    'process.env.RESEND_API_KEY': JSON.stringify(process.env.RESEND_API_KEY)
+  }
 });

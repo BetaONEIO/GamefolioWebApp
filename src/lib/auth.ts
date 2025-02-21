@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { sendConfirmationEmail } from './email';
 
 function logAuthError(action: string, error: any, details?: Record<string, any>) {
   console.error(`Auth Error (${action}):`, {
@@ -20,47 +21,91 @@ export async function signUp(email: string, password: string) {
   });
   
   try {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectTo,
-        data: {
-          email_confirmed: false
+    // Implement retry logic with exponential backoff
+    const maxRetries = 3;
+    let retryCount = 0;
+    let lastError;
+
+    while (retryCount < maxRetries) {
+      try {
+        const signupPromise = supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: redirectTo,
+            data: {
+              email_confirmed: false
+            }
+          }
+        });
+
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => {
+            reject(new Error('Request timed out. Please try again.'));
+          }, 15000); // Increased timeout to 15 seconds
+        });
+
+        const { data, error } = await Promise.race([
+          signupPromise,
+          timeoutPromise
+        ]) as any;
+        
+        if (error) {
+          if (error.message.includes('Email rate limit exceeded')) {
+            throw new Error('Too many signup attempts. Please try again later.');
+          }
+          throw error;
+        }
+
+        console.log('Signup response:', {
+          userId: data.user?.id,
+          email: data.user?.email,
+          emailConfirmed: data.user?.email_confirmed_at,
+          identities: data.user?.identities,
+          timestamp: new Date().toISOString()
+        });
+
+        if (data.user && !data.user.email_confirmed_at) {
+          console.log('Email confirmation required:', {
+            email: data.user.email,
+            timestamp: new Date().toISOString()
+          });
+
+          try {
+            await sendConfirmationEmail(email, redirectTo);
+          } catch (emailError) {
+            console.error('Failed to send confirmation email via Resend:', emailError);
+          }
+        }
+
+        return { data, emailConfirmationRequired: true };
+      } catch (error) {
+        lastError = error;
+        
+        // Only retry on timeout or network errors
+        if (error.message.includes('timeout') || error.message.includes('network')) {
+          retryCount++;
+          if (retryCount < maxRetries) {
+            // Exponential backoff: 1s, 2s, 4s
+            const delay = Math.pow(2, retryCount - 1) * 1000;
+            console.log(`Retry attempt ${retryCount} after ${delay}ms`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            continue;
+          }
+        } else {
+          // Don't retry other types of errors
+          break;
         }
       }
-    });
-    
-    if (error) {
-      logAuthError('signup', error, {
-        email,
-        redirectUrl: redirectTo
-      });
-      
-      if (error.message.includes('Email rate limit exceeded')) {
-        throw new Error('Too many signup attempts. Please try again later.');
-      }
-      throw error;
     }
 
-    // Log detailed signup response
-    console.log('Signup response:', {
-      userId: data.user?.id,
-      email: data.user?.email,
-      emailConfirmed: data.user?.email_confirmed_at,
-      identities: data.user?.identities,
-      timestamp: new Date().toISOString()
+    // If we get here, all retries failed
+    logAuthError('signup', lastError, {
+      email,
+      redirectUrl: redirectTo,
+      retries: retryCount
     });
-
-    // Check if confirmation was sent
-    if (data.user && !data.user.email_confirmed_at) {
-      console.log('Email confirmation required:', {
-        email: data.user.email,
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    return { data, emailConfirmationRequired: true };
+    throw lastError;
   } catch (error) {
     logAuthError('signup_catch', error);
     throw error;
@@ -71,10 +116,21 @@ export async function signIn(email: string, password: string) {
   console.log('Attempting signin:', { email, timestamp: new Date().toISOString() });
   
   try {
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const signInPromise = supabase.auth.signInWithPassword({
       email,
       password,
     });
+
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => {
+        reject(new Error('Sign in request timed out. Please try again.'));
+      }, 15000);
+    });
+
+    const { data, error } = await Promise.race([
+      signInPromise,
+      timeoutPromise
+    ]) as any;
     
     if (error) {
       logAuthError('signin', error, { email });
@@ -93,7 +149,6 @@ export async function signIn(email: string, password: string) {
       timestamp: new Date().toISOString()
     });
 
-    // Check if user has a profile
     const { data: profile, error: profileError } = await supabase
       .from('user_profiles')
       .select('*')
@@ -106,7 +161,6 @@ export async function signIn(email: string, password: string) {
       });
     }
 
-    // If no profile exists, create one
     if (!profile) {
       console.log('Creating profile for user:', {
         userId: data.user.id,
@@ -181,6 +235,14 @@ export async function resendConfirmationEmail(email: string) {
     if (error) {
       logAuthError('resend_confirmation', error, { email });
       throw error;
+    }
+
+    try {
+      const redirectTo = `${window.location.origin}/account`;
+      await sendConfirmationEmail(email, redirectTo);
+    } catch (emailError) {
+      console.error('Failed to send confirmation email via Resend:', emailError);
+      throw emailError;
     }
     
     console.log('Confirmation email resent successfully:', {
