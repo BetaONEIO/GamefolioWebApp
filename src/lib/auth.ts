@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { supabase, signUpUser } from './supabase';
 import { sendConfirmationEmail } from './email';
 
 function logAuthError(action: string, error: any, details?: Record<string, any>) {
@@ -27,13 +27,10 @@ export async function signUp(email: string, password: string) {
 
     while (retryCount < maxRetries) {
       try {
-        // Use the admin API to create user
-        const signupPromise = supabase.auth.admin.createUser({
-          email,
-          password,
-          email_confirm: false,
-          user_metadata: {
-            redirect_to: redirectTo
+        const signupPromise = signUpUser(email, password, {
+          emailRedirectTo: redirectTo,
+          data: {
+            email_confirmed: false
           }
         });
 
