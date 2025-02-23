@@ -12,9 +12,12 @@ export async function sendConfirmationEmail(email: string, confirmationLink: str
       {
         to_email: email,
         confirmation_link: confirmationLink,
-        // Add any additional template variables here
-        subject: 'Confirm your Gamefolio account',
-        user_email: email
+        subject: 'Welcome to Gamefolio - Confirm Your Account',
+        user_email: email,
+        site_name: 'Gamefolio',
+        support_email: 'support@gamefolio.com',
+        company_name: 'Gamefolio',
+        company_address: 'Gaming Street 123, Esports City'
       },
       {
         publicKey: PUBLIC_KEY,

@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { sendConfirmationEmail } from './email';
 
 function logAuthError(action: string, error: any, details?: Record<string, any>) {
   console.error(`Auth Error (${action}):`, {
@@ -46,6 +47,9 @@ export async function signUp(email: string, password: string) {
     if (!data?.user) {
       throw new Error('Signup failed. Please try again.');
     }
+
+    // Send confirmation email using Email.js
+    await sendConfirmationEmail(email, `${window.location.origin}/confirm?email=${encodeURIComponent(email)}`);
 
     return { data, emailConfirmationRequired: true };
   } catch (error: any) {
