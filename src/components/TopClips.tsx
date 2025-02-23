@@ -50,15 +50,22 @@ export default function TopClips() {
 
       // Then get the user profiles for these clips
       const userIds = [...new Set(clipsData.map(clip => clip.user_id))];
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('user_profiles')
-        .select('user_id, username')
-        .in('user_id', userIds);
-
-      if (profilesError) throw profilesError;
+      const profiles = await Promise.all(
+        userIds.map(userId =>
+          supabase
+            .from('user_profiles')
+            .select('user_id, username')
+            .eq('user_id', userId)
+            .single()
+            .then(({ data, error }) => {
+              if (error) throw error;
+              return data;
+            })
+        )
+      );
 
       // Create a map of user_id to username
-      const userMap = new Map(profilesData.map(profile => [profile.user_id, profile.username]));
+      const userMap = new Map(profiles.map(profile => [profile.user_id, profile.username]));
 
       const formattedClips: GameClip[] = clipsData.map(clip => ({
         id: clip.id,

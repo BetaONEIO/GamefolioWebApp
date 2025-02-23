@@ -91,7 +91,8 @@ export default function ClipLightbox({ clip, onClose }: ClipLightboxProps) {
           .from('likes')
           .delete()
           .eq('clip_id', clip.id)
-          .eq('user_id', session.user.id);
+          .eq('user_id', session.user.id)
+          .single();
 
         if (error) throw error;
         setIsLiked(false);
@@ -99,7 +100,8 @@ export default function ClipLightbox({ clip, onClose }: ClipLightboxProps) {
       } else {
         const { error } = await supabase
           .from('likes')
-          .insert({ clip_id: clip.id, user_id: session.user.id });
+          .insert({ clip_id: clip.id, user_id: session.user.id })
+          .single();
 
         if (error) {
           if (error.message.includes('confirmed')) {
@@ -135,7 +137,8 @@ export default function ClipLightbox({ clip, onClose }: ClipLightboxProps) {
           clip_id: clip.id,
           user_id: session.user.id,
           content: newComment.trim()
-        });
+        })
+        .single();
 
       if (error) {
         if (error.message.includes('confirmed')) {

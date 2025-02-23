@@ -109,7 +109,8 @@ export default function UploadModal({ onClose }: UploadModalProps) {
           game,
           video_url: videoUrl,
           visibility: destinations.feed ? 'public' : 'private'
-        });
+        })
+        .single();
 
       if (dbError) throw dbError;
 
