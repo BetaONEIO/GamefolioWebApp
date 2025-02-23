@@ -14,14 +14,16 @@ export async function signUp(email: string, password: string) {
   const redirectTo = `${window.location.origin}/account`;
   
   try {
-    // First check if the user already exists
-    const { data: existingUser } = await supabase
-      .from('user_profiles')
-      .select('user_id')
-      .eq('email', email)
-      .maybeSingle();
+    // First check if the user already exists in auth.users
+    const { data: { users }, error: getUserError } = await supabase.auth.admin.listUsers({
+      filters: {
+        email: email
+      }
+    });
 
-    if (existingUser) {
+    if (getUserError) throw getUserError;
+    
+    if (users && users.length > 0) {
       throw new Error('An account with this email already exists');
     }
 
@@ -123,18 +125,4 @@ export function onAuthStateChange(callback: (session: any) => void) {
   return supabase.auth.onAuthStateChange((_event, session) => {
     callback(session);
   });
-}
-
-export async function resendConfirmationEmail(email: string) {
-  try {
-    const { error } = await supabase.auth.resend({
-      type: 'signup',
-      email,
-    });
-    
-    if (error) throw error;
-  } catch (error) {
-    logAuthError('resend_confirmation', error, { email });
-    throw new Error('Failed to resend confirmation email. Please try again later.');
-  }
 }
