@@ -8,6 +8,7 @@ export default defineConfig({
     exclude: ['lucide-react'],
   },
   define: {
-    'process.env.RESEND_API_KEY': JSON.stringify(process.env.RESEND_API_KEY)
+    'process.env.RESEND_API_KEY': JSON.stringify(process.env.RESEND_API_KEY),
+    'import.meta.env.VITE_RESEND_API_KEY': JSON.stringify(process.env.RESEND_API_KEY)
   }
 });

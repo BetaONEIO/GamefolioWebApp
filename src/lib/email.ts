@@ -1,29 +1,31 @@
-import { Resend } from 'resend';
+import emailjs from '@emailjs/browser';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID;
+const TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
+const PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
 
 export async function sendConfirmationEmail(email: string, confirmationLink: string) {
   try {
-    const { data, error } = await resend.emails.send({
-      from: 'Gamefolio <noreply@gamefolio.com>',
-      to: email,
-      subject: 'Confirm your Gamefolio account',
-      html: `
-        <div>
-          <h1>Welcome to Gamefolio!</h1>
-          <p>Please click the link below to confirm your email address:</p>
-          <a href="${confirmationLink}">Confirm Email</a>
-          <p>If you didn't create a Gamefolio account, you can safely ignore this email.</p>
-        </div>
-      `,
-    });
+    const response = await emailjs.send(
+      SERVICE_ID,
+      TEMPLATE_ID,
+      {
+        to_email: email,
+        confirmation_link: confirmationLink,
+        // Add any additional template variables here
+        subject: 'Confirm your Gamefolio account',
+        user_email: email
+      },
+      {
+        publicKey: PUBLIC_KEY,
+      }
+    );
 
-    if (error) {
-      console.error('Error sending confirmation email:', error);
-      throw error;
+    if (response.status === 200) {
+      return response;
+    } else {
+      throw new Error('Failed to send email');
     }
-
-    return data;
   } catch (error) {
     console.error('Failed to send confirmation email:', error);
     throw error;

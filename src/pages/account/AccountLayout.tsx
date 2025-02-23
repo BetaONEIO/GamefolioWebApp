@@ -25,12 +25,13 @@ export default function AccountLayout() {
       }
 
       try {
-        const { data: roleData } = await supabase
+        const { data: roleData, error } = await supabase
           .from('user_roles')
           .select('role')
           .eq('user_id', session.user.id)
           .single();
 
+        if (error) throw error;
         setIsAdmin(roleData?.role === 'admin');
       } catch (error) {
         console.error('Error checking admin status:', error);

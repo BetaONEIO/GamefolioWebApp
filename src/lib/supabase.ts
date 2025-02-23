@@ -7,14 +7,18 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
-// Regular client for normal operations
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-// Let's revert back to using the regular signup method
-export async function signUpUser(email: string, password: string, options = {}) {
-  return supabase.auth.signUp({
-    email,
-    password,
-    options
-  });
-}
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
+    flowType: 'implicit',
+    storage: window.localStorage
+  },
+  global: {
+    headers: { 'x-client-info': 'gamefolio-web' }
+  },
+  realtime: {
+    params: { eventsPerSecond: 1 }
+  }
+});

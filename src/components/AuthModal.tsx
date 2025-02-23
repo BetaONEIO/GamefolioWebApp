@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Loader2, Eye, EyeOff, Mail, RefreshCw } from 'lucide-react';
-import { signIn, signUp, resendConfirmationEmail } from '../lib/auth';
+import { signIn, signUp } from '../lib/auth';
+import { sendConfirmationEmail } from '../lib/email';
 
 interface AuthModalProps {
   onClose: () => void;
@@ -79,12 +80,10 @@ export default function AuthModal({ onClose, defaultMode = 'login' }: AuthModalP
 
     try {
       if (mode === 'signup') {
-        const { emailConfirmationRequired } = await signUp(email, password);
-        if (emailConfirmationRequired) {
-          setMode('check-email');
-        } else {
-          onClose();
-        }
+        await signUp(email, password);
+        // Send confirmation email
+        await sendConfirmationEmail(email, `${window.location.origin}/confirm?email=${encodeURIComponent(email)}`);
+        setMode('check-email');
       } else {
         await signIn(email, password);
         onClose();
@@ -114,7 +113,7 @@ export default function AuthModal({ onClose, defaultMode = 'login' }: AuthModalP
     setResending(true);
     setError(null);
     try {
-      await resendConfirmationEmail(email);
+      await sendConfirmationEmail(email, `${window.location.origin}/confirm?email=${encodeURIComponent(email)}`);
       setCooldownTime(RATE_LIMIT_COOLDOWN);
     } catch (err) {
       if (err instanceof Error) {

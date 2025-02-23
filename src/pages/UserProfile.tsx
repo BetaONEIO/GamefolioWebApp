@@ -1,79 +1,74 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import Profile from '../components/Profile';
 import ClipGrid from '../components/ClipGrid';
 import { supabase } from '../lib/supabase';
-
-// Mock data - replace with Supabase data fetching
-const getMockUserData = (userId: string) => ({
-  id: userId,
-  username: 'ProGamer123',
-  avatar: 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=400',
-  bio: 'Professional esports player specializing in FPS games. 3x Tournament Champion. Content Creator.',
-  followers: 15600,
-  following: 342,
-  views: 1200000,
-  favoriteGames: ['Valorant', 'CS:GO', 'Apex Legends', 'Overwatch 2', 'Call of Duty']
-});
-
-const getMockUserClips = (userId: string) => [
-  {
-    id: '1',
-    userId,
-    username: 'ProGamer123',
-    userAvatar: 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=400',
-    title: 'Insane 1v5 Clutch!',
-    videoUrl: '#',
-    thumbnail: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800',
-    game: 'Valorant',
-    likes: 1200,
-    comments: 89,
-    shares: 45,
-    createdAt: '2024-02-20T12:00:00Z'
-  },
-  {
-    id: '2',
-    userId,
-    username: 'ProGamer123',
-    userAvatar: 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=400',
-    title: 'New Gaming Setup Tour',
-    videoUrl: '#',
-    thumbnail: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=800',
-    game: 'Setup Tour',
-    likes: 2400,
-    comments: 156,
-    shares: 89,
-    createdAt: '2024-02-19T15:30:00Z'
-  }
-];
+import { User } from '../types';
 
 export default function UserProfile() {
   const { userId } = useParams();
-  const user = getMockUserData(userId!);
-  const clips = getMockUserClips(userId!);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Update page title with username when available
-    const fetchUsername = async () => {
+    async function loadUserProfile() {
       if (!userId) return;
 
       try {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from('user_profiles')
-          .select('username')
+          .select(`
+            user_id,
+            username,
+            avatar_url,
+            bio,
+            favorite_games,
+            followers,
+            following,
+            views
+          `)
           .eq('user_id', userId)
           .single();
 
-        if (data?.username) {
+        if (error) throw error;
+
+        if (data) {
+          setUser({
+            id: data.user_id,
+            username: data.username,
+            avatar: data.avatar_url || `https://ui-avatars.com/api/?name=${data.username}`,
+            bio: data.bio || 'No bio yet',
+            followers: data.followers || 0,
+            following: data.following || 0,
+            views: data.views || 0,
+            favoriteGames: data.favorite_games || []
+          });
+
           document.title = `${data.username} - Gamefolio`;
         }
       } catch (error) {
-        console.error('Error fetching username:', error);
+        console.error('Error loading user profile:', error);
+        setError('Failed to load user profile');
+      } finally {
+        setLoading(false);
       }
-    };
+    }
 
-    fetchUsername();
+    loadUserProfile();
   }, [userId]);
+
+  if (loading) {
+    return <div className="min-h-screen bg-black pt-20">Loading...</div>;
+  }
+
+  if (error || !user) {
+    return (
+      <div className="min-h-screen bg-black pt-20 text-center">
+        <p className="text-red-500">{error || 'User not found'}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black">
@@ -93,7 +88,7 @@ export default function UserProfile() {
               </button>
             </nav>
           </div>
-          <ClipGrid clips={clips} />
+          <ClipGrid clips={[]} />
         </div>
       </div>
     </div>
