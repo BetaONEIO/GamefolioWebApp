@@ -31,6 +31,10 @@ export default function ClipLightbox({ clip, onClose }: ClipLightboxProps) {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const getAvatarUrl = (username: string) => {
+    return `https://api.dicebear.com/7.x/initials/svg?seed=${username}&backgroundColor=9FE64F&textColor=000000`;
+  };
+
   useEffect(() => {
     loadComments();
     if (session) {
@@ -185,7 +189,7 @@ export default function ClipLightbox({ clip, onClose }: ClipLightboxProps) {
             <div className="flex items-center space-x-3 mb-3">
               <Link to={`/user/${clip.userId}`}>
                 <img
-                  src={clip.userAvatar}
+                  src={clip.userAvatar || getAvatarUrl(clip.username)}
                   alt={clip.username}
                   className="w-10 h-10 rounded-full hover:ring-2 hover:ring-[#9FE64F] transition-all"
                 />
@@ -217,7 +221,7 @@ export default function ClipLightbox({ clip, onClose }: ClipLightboxProps) {
               <div key={comment.id} className="flex space-x-3">
                 <Link to={`/user/${comment.user_profiles.username}`}>
                   <img
-                    src={comment.user_profiles.avatar_url || `https://ui-avatars.com/api/?name=${comment.user_profiles.username}`}
+                    src={comment.user_profiles.avatar_url || getAvatarUrl(comment.user_profiles.username)}
                     alt={comment.user_profiles.username}
                     className="w-8 h-8 rounded-full hover:ring-2 hover:ring-[#9FE64F] transition-all"
                   />

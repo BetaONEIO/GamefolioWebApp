@@ -1,19 +1,24 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import Profile from '../components/Profile';
 import ClipGrid from '../components/ClipGrid';
 import { supabase } from '../lib/supabase';
 import { User } from '../types';
 
 export default function UserProfile() {
-  const { userId } = useParams();
+  const { username } = useParams();
+  const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const getAvatarUrl = (username: string) => {
+    return `https://api.dicebear.com/7.x/initials/svg?seed=${username}&backgroundColor=9FE64F&textColor=000000`;
+  };
+
   useEffect(() => {
     async function loadUserProfile() {
-      if (!userId) return;
+      if (!username) return;
 
       try {
         const { data, error } = await supabase
@@ -28,7 +33,7 @@ export default function UserProfile() {
             following,
             views
           `)
-          .eq('user_id', userId)
+          .eq('username', username)
           .single();
 
         if (error) throw error;
@@ -37,7 +42,7 @@ export default function UserProfile() {
           setUser({
             id: data.user_id,
             username: data.username,
-            avatar: data.avatar_url || `https://ui-avatars.com/api/?name=${data.username}`,
+            avatar: data.avatar_url || getAvatarUrl(data.username),
             bio: data.bio || 'No bio yet',
             followers: data.followers || 0,
             following: data.following || 0,
@@ -50,13 +55,14 @@ export default function UserProfile() {
       } catch (error) {
         console.error('Error loading user profile:', error);
         setError('Failed to load user profile');
+        navigate('/404');
       } finally {
         setLoading(false);
       }
     }
 
     loadUserProfile();
-  }, [userId]);
+  }, [username, navigate]);
 
   if (loading) {
     return <div className="min-h-screen bg-black pt-20">Loading...</div>;

@@ -13,24 +13,52 @@ export default function UsernameSetupModal({ onComplete }: UsernameSetupModalPro
   const [usernameAvailable, setUsernameAvailable] = useState(false);
   const [checkingUsername, setCheckingUsername] = useState(false);
 
+  // Function to validate username format
+  const validateUsername = (value: string) => {
+    // Must start with a letter and only contain letters, numbers, and underscores
+    const usernameRegex = /^[a-zA-Z][a-zA-Z0-9_]{2,29}$/;
+    return usernameRegex.test(value);
+  };
+
   useEffect(() => {
     const checkUsername = async () => {
-      if (username.length < 3) {
+      const trimmedUsername = username.trim().toLowerCase();
+      
+      // Clear states when empty
+      if (!trimmedUsername) {
         setUsernameAvailable(false);
+        setError(null);
+        return;
+      }
+
+      // Validate format first
+      if (!validateUsername(trimmedUsername)) {
+        setUsernameAvailable(false);
+        setError('Username must start with a letter and can only contain letters, numbers, and underscores');
         return;
       }
 
       setCheckingUsername(true);
+      setError(null);
+
       try {
         const { data, error } = await supabase
           .from('user_profiles')
           .select('username')
-          .eq('username', username)
+          .eq('username', trimmedUsername)
           .single();
 
-        setUsernameAvailable(!data && !error);
+        if (error && error.code === 'PGRST116') {
+          // No data found means username is available
+          setUsernameAvailable(true);
+          setError(null);
+        } else {
+          setUsernameAvailable(false);
+          setError('Username is already taken');
+        }
       } catch (error) {
         console.error('Error checking username:', error);
+        setError('Error checking username availability');
       } finally {
         setCheckingUsername(false);
       }
@@ -42,10 +70,19 @@ export default function UsernameSetupModal({ onComplete }: UsernameSetupModalPro
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username || username.length < 3) {
-      setError('Username must be at least 3 characters long');
+    
+    const trimmedUsername = username.trim().toLowerCase();
+
+    if (!trimmedUsername) {
+      setError('Username is required');
       return;
     }
+
+    if (!validateUsername(trimmedUsername)) {
+      setError('Username must start with a letter and can only contain letters, numbers, and underscores');
+      return;
+    }
+
     if (!usernameAvailable) {
       setError('Username is not available');
       return;
@@ -60,13 +97,14 @@ export default function UsernameSetupModal({ onComplete }: UsernameSetupModalPro
 
       const { error } = await supabase
         .from('user_profiles')
-        .update({ username })
+        .update({ username: trimmedUsername })
         .eq('user_id', user.id);
 
       if (error) throw error;
 
       onComplete();
     } catch (err) {
+      console.error('Error setting username:', err);
       setError(err instanceof Error ? err.message : 'Failed to set username');
     } finally {
       setLoading(false);
@@ -114,9 +152,15 @@ export default function UsernameSetupModal({ onComplete }: UsernameSetupModalPro
               </div>
             )}
           </div>
-          <p className="text-sm text-gray-400">
-            Username must be at least 3 characters long and can only contain letters, numbers, and underscores.
-          </p>
+          <div className="text-sm text-gray-400 space-y-2">
+            <p>Username requirements:</p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li>Must be between 3 and 30 characters</li>
+              <li>Must start with a letter</li>
+              <li>Can only contain letters, numbers, and underscores</li>
+              <li>Cannot contain spaces or special characters</li>
+            </ul>
+          </div>
 
           <button
             type="submit"

@@ -11,6 +11,10 @@ interface ClipGridProps {
 export default function ClipGrid({ clips }: ClipGridProps) {
   const [selectedClip, setSelectedClip] = useState<GameClip | null>(null);
 
+  const getAvatarUrl = (username: string) => {
+    return `https://api.dicebear.com/7.x/initials/svg?seed=${username}&backgroundColor=9FE64F&textColor=000000`;
+  };
+
   return (
     <>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 px-4">
@@ -34,9 +38,9 @@ export default function ClipGrid({ clips }: ClipGridProps) {
             
             <div className="p-4">
               <div className="flex items-center space-x-3 mb-3">
-                <Link to={`/user/${clip.userId}`}>
+                <Link to={`/@${clip.username}`}>
                   <img
-                    src={clip.userAvatar}
+                    src={clip.userAvatar || getAvatarUrl(clip.username)}
                     alt={clip.username}
                     className="w-8 h-8 rounded-full hover:ring-2 hover:ring-[#9FE64F] transition-all"
                   />
@@ -44,7 +48,7 @@ export default function ClipGrid({ clips }: ClipGridProps) {
                 <div>
                   <h3 className="font-medium text-white">{clip.title}</h3>
                   <Link 
-                    to={`/user/${clip.userId}`}
+                    to={`/@${clip.username}`}
                     className="text-sm text-gray-400 hover:text-[#9FE64F] transition-colors"
                   >
                     {clip.username}

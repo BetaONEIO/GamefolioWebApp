@@ -34,9 +34,10 @@ function PageTitle() {
       else if (path === '/account/settings') title = 'Settings - Gamefolio';
       else if (path === '/account/explore') title = 'Explore - Gamefolio';
       else if (path === '/account/admin') title = 'Admin Dashboard - Gamefolio';
-    } else if (path.startsWith('/user/')) {
-      // For user profiles, we could potentially fetch the username here
-      title = 'User Profile - Gamefolio';
+    } else if (path.startsWith('/@')) {
+      // For username-based profile URLs
+      const username = path.slice(2); // Remove the @ prefix
+      title = `${username} - Gamefolio`;
     }
 
     document.title = title;
@@ -69,8 +70,26 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
         if (error) throw error;
 
         setProfile(data);
-        setShowOnboarding(!data.onboarding_completed);
-        setShowUsernameSetup(!data.username || data.username === '');
+        
+        // Always check onboarding status when profile is loaded
+        const needsUsername = !data.username || data.username.startsWith('user_');
+        const needsOnboarding = !data.onboarding_completed || !data.favorite_games || data.favorite_games.length < 5;
+
+        // Show username setup first if needed
+        if (needsUsername) {
+          setShowUsernameSetup(true);
+          setShowOnboarding(false);
+        } 
+        // Then show onboarding if needed
+        else if (needsOnboarding) {
+          setShowOnboarding(true);
+          setShowUsernameSetup(false);
+        }
+        // Otherwise clear both modals
+        else {
+          setShowOnboarding(false);
+          setShowUsernameSetup(false);
+        }
       } catch (error) {
         console.error('Error loading profile:', error);
       } finally {
@@ -90,11 +109,17 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (showUsernameSetup) {
-    return <UsernameSetupModal onComplete={() => setShowUsernameSetup(false)} />;
+    return <UsernameSetupModal onComplete={() => {
+      setShowUsernameSetup(false);
+      // Check if onboarding is needed after username setup
+      if (profile && (!profile.onboarding_completed || !profile.favorite_games || profile.favorite_games.length < 5)) {
+        setShowOnboarding(true);
+      }
+    }} />;
   }
 
   if (showOnboarding) {
-    return <OnboardingModal />;
+    return <OnboardingModal onComplete={() => setShowOnboarding(false)} />;
   }
 
   return <>{children}</>;
@@ -109,7 +134,7 @@ function App() {
           <Header />
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/user/:userId" element={<UserProfile />} />
+            <Route path="/@:username" element={<UserProfile />} />
             <Route
               path="/account/*"
               element={
@@ -132,4 +157,4 @@ function App() {
   );
 }
 
-export default App
+export default App;
