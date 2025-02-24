@@ -15,8 +15,7 @@ export async function signUp(email: string, password: string) {
   const redirectTo = `${window.location.origin}/account`;
   
   try {
-    // Attempt signup with a longer timeout (30 seconds)
-    const signUpPromise = supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -27,17 +26,7 @@ export async function signUp(email: string, password: string) {
       }
     });
 
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Signup request timed out')), 30000);
-    });
-
-    const { data, error } = await Promise.race([signUpPromise, timeoutPromise]) as any;
-
     if (error) {
-      if (error.message.includes('rate limit')) {
-        throw new Error('Too many signup attempts. Please try again in a few minutes.');
-      }
-      // If user already exists, Supabase will return an appropriate error
       if (error.message.includes('already registered')) {
         throw new Error('An account with this email already exists');
       }
@@ -53,16 +42,6 @@ export async function signUp(email: string, password: string) {
 
     return { data, emailConfirmationRequired: true };
   } catch (error: any) {
-    // Handle specific error cases
-    if (error.message.includes('timeout')) {
-      logAuthError('signup', error, {
-        message: 'Request timed out. Please try again.',
-        email,
-        redirectUrl: redirectTo
-      });
-      throw new Error('The signup request is taking longer than expected. Please try again.');
-    }
-
     if (error.status === 429) {
       throw new Error('Too many requests. Please wait a few minutes and try again.');
     }
@@ -74,16 +53,10 @@ export async function signUp(email: string, password: string) {
 
 export async function signIn(email: string, password: string) {
   try {
-    const signInPromise = supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
-
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Sign in request timed out')), 30000);
-    });
-
-    const { data, error } = await Promise.race([signInPromise, timeoutPromise]) as any;
     
     if (error) {
       if (error.message === 'Invalid login credentials') {
@@ -97,8 +70,8 @@ export async function signIn(email: string, password: string) {
 
     return data;
   } catch (error: any) {
-    if (error.message.includes('timeout')) {
-      throw new Error('The sign in request is taking longer than expected. Please try again.');
+    if (error.status === 429) {
+      throw new Error('Too many requests. Please wait a few minutes and try again.');
     }
     
     logAuthError('signin', error, { email });

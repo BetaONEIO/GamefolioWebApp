@@ -81,8 +81,6 @@ export default function AuthModal({ onClose, defaultMode = 'login' }: AuthModalP
     try {
       if (mode === 'signup') {
         await signUp(email, password);
-        // Send confirmation email
-        await sendConfirmationEmail(email, `${window.location.origin}/confirm?email=${encodeURIComponent(email)}`);
         setMode('check-email');
       } else {
         await signIn(email, password);
@@ -93,6 +91,8 @@ export default function AuthModal({ onClose, defaultMode = 'login' }: AuthModalP
         if (err.message.includes('rate limit') || err.message.includes('Too many signup attempts')) {
           setCooldownTime(RATE_LIMIT_COOLDOWN);
           setError(`Too many attempts. Please wait ${RATE_LIMIT_COOLDOWN} seconds before trying again.`);
+        } else if (err.message.includes('Email not confirmed')) {
+          setMode('check-email');
         } else {
           setError(err.message);
         }

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to Gamefolio</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background-color: #030712;
+      color: #ffffff;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+    .logo {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .logo img {
+      width: 120px;
+      height: auto;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .header h1 {
+      color: #9FE64F;
+      font-size: 28px;
+      margin: 0 0 16px 0;
+    }
+    .header p {
+      color: #9CA3AF;
+      font-size: 16px;
+      line-height: 1.5;
+      margin: 0;
+    }
+    .verification-message {
+      background: #1F2937;
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 24px;
+      color: #9CA3AF;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .content {
+      background: #111827;
+      border-radius: 12px;
+      padding: 32px;
+      margin-bottom: 32px;
+    }
+    .feature {
+      display: flex;
+      align-items: flex-start;
+      margin-bottom: 24px;
+    }
+    .feature:last-child {
+      margin-bottom: 0;
+    }
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      background: #1F2937;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 16px;
+      flex-shrink: 0;
+    }
+    .feature-icon img {
+      width: 24px;
+      height: 24px;
+    }
+    .feature-text h3 {
+      color: #ffffff;
+      font-size: 16px;
+      margin: 0 0 8px 0;
+    }
+    .feature-text p {
+      color: #9CA3AF;
+      font-size: 14px;
+      line-height: 1.5;
+      margin: 0;
+    }
+    .cta {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .button {
+      display: inline-block;
+      background-color: #9FE64F;
+      color: #000000;
+      text-decoration: none;
+      padding: 12px 32px;
+      border-radius: 24px;
+      font-weight: 600;
+      font-size: 16px;
+    }
+    .verification-note {
+      text-align: center;
+      color: #6B7280;
+      font-size: 14px;
+      margin-bottom: 32px;
+      padding: 0 32px;
+    }
+    .social {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .social a {
+      display: inline-block;
+      margin: 0 8px;
+      color: #9FE64F;
+      text-decoration: none;
+    }
+    .social img {
+      width: 24px;
+      height: 24px;
+    }
+    .footer {
+      text-align: center;
+      color: #6B7280;
+      font-size: 12px;
+    }
+    .footer p {
+      margin: 0 0 8px 0;
+    }
+    .footer a {
+      color: #9CA3AF;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">
+      <img src="https://i.imgur.com/YourLogoURL.png" alt="Gamefolio Logo">
+    </div>
+    
+    <div class="header">
+      <h1>Welcome to Gamefolio!</h1>
+      <p>Get ready to showcase your gaming journey and connect with fellow gamers.</p>
+      <div class="verification-message">
+        {{verification_message}}
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="feature">
+        <div class="feature-icon">
+          <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239FE64F' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 7h-9'/%3E%3Cpath d='M14 17H5'/%3E%3Ccircle cx='17' cy='17' r='3'/%3E%3Ccircle cx='7' cy='7' r='3'/%3E%3C/svg%3E" alt="Share Icon">
+        </div>
+        <div class="feature-text">
+          <h3>Share Your Best Moments</h3>
+          <p>Upload and share your most epic gaming clips with the community.</p>
+        </div>
+      </div>
+
+      <div class="feature">
+        <div class="feature-icon">
+          <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239FE64F' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cpath d='M23 21v-2a4 4 0 0 0-3-3.87'/%3E%3Cpath d='M16 3.13a4 4 0 0 1 0 7.75'/%3E%3C/svg%3E" alt="Connect Icon">
+        </div>
+        <div class="feature-text">
+          <h3>Connect Your Gaming Accounts</h3>
+          <p>Link your PlayStation, Xbox, Steam, and other gaming accounts to showcase your achievements.</p>
+        </div>
+      </div>
+
+      <div class="feature">
+        <div class="feature-icon">
+          <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239FE64F' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='9 11 12 14 22 4'/%3E%3Cpath d='M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11'/%3E%3C/svg%3E" alt="Build Icon">
+        </div>
+        <div class="feature-text">
+          <h3>Build Your Gamefolio</h3>
+          <p>Create a stunning gaming portfolio to showcase your skills and achievements.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="cta">
+      <a href="{{confirmation_link}}" class="button">{{verification_button_text}}</a>
+    </div>
+
+    <div class="verification-note">
+      {{verification_note}}
+    </div>
+
+    <div class="social">
+      <a href="https://twitter.com/gamefolio">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239FE64F' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z'/%3E%3C/svg%3E" alt="Twitter">
+      </a>
+      <a href="https://discord.gg/gamefolio">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239FE64F' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z'/%3E%3C/svg%3E" alt="Discord">
+      </a>
+      <a href="https://twitch.tv/gamefolio">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239FE64F' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 2H3v16h5v4l4-4h5l4-4V2zm-10 9V7m5 4V7'/%3E%3C/svg%3E" alt="Twitch">
+      </a>
+    </div>
+
+    <div class="footer">
+      <p>© 2024 Gamefolio. All rights reserved.</p>
+      <p>
+        <a href="#">Privacy Policy</a> • 
+        <a href="#">Terms of Service</a> • 
+        <a href="#">Unsubscribe</a>
+      </p>
+    </div>
+  </div>
+</body>
+</html>
