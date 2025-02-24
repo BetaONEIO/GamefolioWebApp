@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Loader2, Eye, EyeOff, Mail, RefreshCw } from 'lucide-react';
 import { signIn, signUp } from '../lib/auth';
 import { sendConfirmationEmail } from '../lib/email';
+import { useNavigate } from 'react-router-dom';
 
 interface AuthModalProps {
   onClose: () => void;
@@ -19,6 +20,7 @@ const PASSWORD_REQUIREMENTS = [
 const RATE_LIMIT_COOLDOWN = 60; // 60 seconds cooldown
 
 export default function AuthModal({ onClose, defaultMode = 'login' }: AuthModalProps) {
+  const navigate = useNavigate();
   const [mode, setMode] = useState<'login' | 'signup' | 'check-email'>(defaultMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -83,8 +85,14 @@ export default function AuthModal({ onClose, defaultMode = 'login' }: AuthModalP
         await signUp(email, password);
         setMode('check-email');
       } else {
-        await signIn(email, password);
-        onClose();
+        const response = await signIn(email, password);
+        if (response.needsUsername || response.needsOnboarding) {
+          // Close modal and let protected route handle the flow
+          onClose();
+          navigate('/account');
+        } else {
+          onClose();
+        }
       }
     } catch (err) {
       if (err instanceof Error) {

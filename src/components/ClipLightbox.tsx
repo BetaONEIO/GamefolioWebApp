@@ -187,7 +187,7 @@ export default function ClipLightbox({ clip, onClose }: ClipLightboxProps) {
           {/* Clip Info */}
           <div className="p-4 border-b border-gray-800">
             <div className="flex items-center space-x-3 mb-3">
-              <Link to={`/user/${clip.userId}`}>
+              <Link to={`/@${clip.username}`}>
                 <img
                   src={clip.userAvatar || getAvatarUrl(clip.username)}
                   alt={clip.username}
@@ -197,7 +197,7 @@ export default function ClipLightbox({ clip, onClose }: ClipLightboxProps) {
               <div>
                 <h3 className="font-medium text-white">{clip.title}</h3>
                 <Link 
-                  to={`/user/${clip.userId}`}
+                  to={`/@${clip.username}`}
                   className="text-sm text-gray-400 hover:text-[#9FE64F] transition-colors"
                 >
                   {clip.username}
@@ -219,7 +219,7 @@ export default function ClipLightbox({ clip, onClose }: ClipLightboxProps) {
             
             {comments.map((comment) => (
               <div key={comment.id} className="flex space-x-3">
-                <Link to={`/user/${comment.user_profiles.username}`}>
+                <Link to={`/@${comment.user_profiles.username}`}>
                   <img
                     src={comment.user_profiles.avatar_url || getAvatarUrl(comment.user_profiles.username)}
                     alt={comment.user_profiles.username}
@@ -229,7 +229,7 @@ export default function ClipLightbox({ clip, onClose }: ClipLightboxProps) {
                 <div>
                   <p className="text-sm">
                     <Link 
-                      to={`/user/${comment.user_profiles.username}`}
+                      to={`/@${comment.user_profiles.username}`}
                       className="font-medium text-white hover:text-[#9FE64F] transition-colors"
                     >
                       {comment.user_profiles.username}

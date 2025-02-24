@@ -2,15 +2,20 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { onAuthStateChange } from '../lib/auth';
 
+interface AuthSession extends Session {
+  needsOnboarding?: boolean;
+  needsUsername?: boolean;
+}
+
 interface AuthContextType {
-  session: Session | null;
+  session: AuthSession | null;
   loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({ session: null, loading: true });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSession] = useState<AuthSession | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

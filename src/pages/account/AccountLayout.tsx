@@ -7,7 +7,7 @@ import { supabase } from '../../lib/supabase';
 const navItems = [
   { to: '/account', icon: Home, label: 'My Gamefolio', end: true },
   { to: '/account/leaderboard', icon: Trophy, label: 'Leaderboard' },
-  { to: '/account/profile', icon: User, label: 'Account' },
+  { to: '/account/profile', icon: User, label: 'My Profile' },
   { to: '/account/settings', icon: SettingsIcon, label: 'Settings' },
   { to: '/account/explore', icon: Compass, label: 'Explore' },
 ];

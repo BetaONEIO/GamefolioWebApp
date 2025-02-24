@@ -68,6 +68,24 @@ export async function signIn(email: string, password: string) {
       throw error;
     }
 
+    // After successful sign in, check if user needs onboarding
+    if (data.user) {
+      const { data: profile, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('username, onboarding_completed, favorite_games')
+        .eq('user_id', data.user.id)
+        .single();
+
+      if (!profileError && profile) {
+        // Return onboarding status with auth data
+        return {
+          ...data,
+          needsOnboarding: !profile.onboarding_completed || !profile.favorite_games || profile.favorite_games.length < 5,
+          needsUsername: !profile.username || profile.username.startsWith('user_')
+        };
+      }
+    }
+
     return data;
   } catch (error: any) {
     if (error.status === 429) {
@@ -90,7 +108,22 @@ export async function signOut() {
 }
 
 export function onAuthStateChange(callback: (session: any) => void) {
-  return supabase.auth.onAuthStateChange((_event, session) => {
-    callback(session);
+  return supabase.auth.onAuthStateChange(async (_event, session) => {
+    if (session?.user) {
+      // Check onboarding status whenever auth state changes
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('username, onboarding_completed, favorite_games')
+        .eq('user_id', session.user.id)
+        .single();
+
+      callback({
+        ...session,
+        needsOnboarding: !profile?.onboarding_completed || !profile?.favorite_games || profile?.favorite_games.length < 5,
+        needsUsername: !profile?.username || profile?.username.startsWith('user_')
+      });
+    } else {
+      callback(session);
+    }
   });
 }
