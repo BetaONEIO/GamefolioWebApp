@@ -39,6 +39,7 @@ export default function Admin() {
   const [emailSending, setEmailSending] = useState<{ [key: string]: boolean }>({});
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<{ [key: string]: boolean }>({});
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
   useEffect(() => {
     checkAdminStatus();
@@ -124,24 +125,29 @@ export default function Admin() {
   }
 
   async function handleDeleteUser(userId: string) {
-    if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
-      return;
-    }
-
     try {
       setDeleting(prev => ({ ...prev, [userId]: true }));
       setError(null);
 
-      // Delete user from auth.users (this will cascade to profiles and other related data)
-      const { error } = await supabase.auth.admin.deleteUser(userId);
+      // Check if this is the last admin
+      const adminUsers = users.filter(u => u.user_roles?.role === 'admin');
+      const isLastAdmin = adminUsers.length === 1 && adminUsers[0].id === userId;
+      
+      if (isLastAdmin) {
+        throw new Error('Cannot delete the last admin user');
+      }
 
-      if (error) throw error;
+      // Delete user from auth.users (this will cascade to profiles and other related data)
+      const { error: deleteError } = await supabase.auth.admin.deleteUser(userId);
+
+      if (deleteError) throw deleteError;
 
       // Remove user from local state
       setUsers(users.filter(user => user.id !== userId));
+      setShowDeleteConfirm(null);
     } catch (error) {
       console.error('Error deleting user:', error);
-      setError('Failed to delete user. Please try again.');
+      setError(error instanceof Error ? error.message : 'Failed to delete user');
     } finally {
       setDeleting(prev => ({ ...prev, [userId]: false }));
     }
@@ -315,6 +321,37 @@ export default function Admin() {
         </div>
       )}
 
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50">
+          <div className="bg-gray-900 p-6 rounded-lg max-w-md w-full">
+            <h3 className="text-xl font-bold mb-4">Confirm User Deletion</h3>
+            <p className="text-gray-400 mb-6">
+              Are you sure you want to delete this user? This action cannot be undone and will remove:
+              <ul className="list-disc pl-5 mt-2 space-y-1">
+                <li>User account and authentication data</li>
+                <li>Profile information</li>
+                <li>All uploaded clips and content</li>
+                <li>Comments and interactions</li>
+              </ul>
+            </p>
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={() => setShowDeleteConfirm(null)}
+                className="px-4 py-2 text-gray-400 hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDeleteUser(showDeleteConfirm)}
+                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+              >
+                Delete User
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {activeTab === 'users' ? (
         <div className="bg-gray-900 rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
@@ -418,7 +455,7 @@ export default function Admin() {
                         <RefreshCw className="w-5 h-5" />
                       </button>
                       <button
-                        onClick={() => handleDeleteUser(user.id)}
+                        onClick={() => setShowDeleteConfirm(user.id)}
                         disabled={deleting[user.id] || user.user_roles?.role === 'admin'}
                         className="text-red-500 hover:text-red-400 disabled:opacity-50 disabled:cursor-not-allowed"
                         title={user.user_roles?.role === 'admin' ? 'Cannot delete admin users' : 'Delete user'}

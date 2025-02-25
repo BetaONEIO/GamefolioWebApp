@@ -109,6 +109,35 @@ export async function signOut() {
   }
 }
 
+export async function resetPassword(email: string) {
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+
+    if (error) throw error;
+  } catch (error: any) {
+    if (error.status === 429) {
+      throw new Error('Too many requests. Please wait a few minutes and try again.');
+    }
+    logAuthError('reset-password', error, { email });
+    throw new Error('Failed to send password reset email. Please try again.');
+  }
+}
+
+export async function updatePassword(newPassword: string) {
+  try {
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword
+    });
+
+    if (error) throw error;
+  } catch (error: any) {
+    logAuthError('update-password', error);
+    throw new Error('Failed to update password. Please try again.');
+  }
+}
+
 export function onAuthStateChange(callback: (session: any) => void) {
   return supabase.auth.onAuthStateChange(async (_event, session) => {
     if (session?.user) {
