@@ -1,3 +1,5 @@
+import { Session } from '@supabase/supabase-js';
+
 export interface User {
   id: string;
   username: string;
@@ -7,6 +9,17 @@ export interface User {
   following: number;
   views: number;
   favoriteGames: string[];
+  socialLinks?: {
+    kick?: string;
+    twitch?: string;
+    twitter?: string;
+    youtube?: string;
+    reddit?: string;
+    steam?: string;
+    playstation?: string;
+    xbox?: string;
+    nintendo?: string;
+  };
 }
 
 export interface GameClip {
@@ -54,4 +67,25 @@ export interface UserProfile {
   favoriteGames: string[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface AuthSession extends Session {
+  needsOnboarding?: boolean;
+  needsUsername?: boolean;
+}
+
+export interface Notification {
+  id: string;
+  userId: string;
+  type: 'like' | 'comment' | 'follow' | 'mention' | 'system';
+  title: string;
+  message: string;
+  read: boolean;
+  data?: {
+    clipId?: string;
+    commentId?: string;
+    actorId?: string;
+    actorUsername?: string;
+  };
+  createdAt: string;
 }

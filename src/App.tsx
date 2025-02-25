@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { supabase } from './lib/supabase';
 import Header from './components/Header';
+import TopBar from './components/TopBar';
 import Home from './pages/Home';
 import AccountLayout from './pages/account/AccountLayout';
 import MyGamefolio from './pages/account/MyGamefolio';
@@ -27,6 +28,8 @@ function PageTitle() {
     // Add specific titles based on routes
     if (path === '/') {
       title = 'Gamefolio - Share Your Gaming Moments';
+    } else if (path === '/explore') {
+      title = 'Explore - Gamefolio';
     } else if (path.startsWith('/account')) {
       if (path === '/account') title = 'My Gamefolio';
       else if (path === '/account/leaderboard') title = 'Leaderboard - Gamefolio';
@@ -35,8 +38,7 @@ function PageTitle() {
       else if (path === '/account/explore') title = 'Explore - Gamefolio';
       else if (path === '/account/admin') title = 'Admin Dashboard - Gamefolio';
     } else if (path.startsWith('/@')) {
-      // For username-based profile URLs
-      const username = path.slice(2); // Remove the @ prefix
+      const username = path.slice(2);
       title = `${username} - Gamefolio`;
     }
 
@@ -132,25 +134,29 @@ function App() {
         <PageTitle />
         <div className="min-h-screen bg-black text-white">
           <Header />
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/@:username" element={<UserProfile />} />
-            <Route
-              path="/account/*"
-              element={
-                <ProtectedRoute>
-                  <AccountLayout />
-                </ProtectedRoute>
-              }
-            >
-              <Route index element={<MyGamefolio />} />
-              <Route path="leaderboard" element={<Leaderboard />} />
-              <Route path="profile" element={<Account />} />
-              <Route path="settings" element={<Settings />} />
-              <Route path="explore" element={<Explore />} />
-              <Route path="admin" element={<Admin />} />
-            </Route>
-          </Routes>
+          <TopBar />
+          <div className="pt-28">
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/explore" element={<Explore />} />
+              <Route path="/@:username" element={<UserProfile />} />
+              <Route
+                path="/account/*"
+                element={
+                  <ProtectedRoute>
+                    <AccountLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<MyGamefolio />} />
+                <Route path="leaderboard" element={<Leaderboard />} />
+                <Route path="profile" element={<Account />} />
+                <Route path="settings" element={<Settings />} />
+                <Route path="explore" element={<Explore />} />
+                <Route path="admin" element={<Admin />} />
+              </Route>
+            </Routes>
+          </div>
         </div>
       </Router>
     </AuthProvider>

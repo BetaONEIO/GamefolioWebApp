@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import { Loader2, Shield, UserX, Eye, Ban, CheckCircle } from 'lucide-react';
+import { Loader2, Shield, UserX, Eye, Ban, CheckCircle, RefreshCw, Mail, Trash2 } from 'lucide-react';
 
 interface User {
   id: string;
@@ -13,6 +13,7 @@ interface User {
   user_profiles?: {
     username: string;
     banned: boolean;
+    onboarding_completed: boolean;
   };
 }
 
@@ -35,6 +36,9 @@ export default function Admin() {
   const [users, setUsers] = useState<User[]>([]);
   const [clips, setClips] = useState<Clip[]>([]);
   const [activeTab, setActiveTab] = useState<'users' | 'clips'>('users');
+  const [emailSending, setEmailSending] = useState<{ [key: string]: boolean }>({});
+  const [error, setError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<{ [key: string]: boolean }>({});
 
   useEffect(() => {
     checkAdminStatus();
@@ -84,7 +88,7 @@ export default function Admin() {
         .select(`
           *,
           user_roles (role),
-          user_profiles (username, banned)
+          user_profiles (username, banned, onboarding_completed)
         `)
         .order('created_at', { ascending: false });
 
@@ -92,6 +96,7 @@ export default function Admin() {
       setUsers(data || []);
     } catch (error) {
       console.error('Error loading users:', error);
+      setError('Failed to load users');
     }
   }
 
@@ -114,21 +119,62 @@ export default function Admin() {
       setClips(data || []);
     } catch (error) {
       console.error('Error loading clips:', error);
+      setError('Failed to load clips');
+    }
+  }
+
+  async function handleDeleteUser(userId: string) {
+    if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setDeleting(prev => ({ ...prev, [userId]: true }));
+      setError(null);
+
+      // Delete user from auth.users (this will cascade to profiles and other related data)
+      const { error } = await supabase.auth.admin.deleteUser(userId);
+
+      if (error) throw error;
+
+      // Remove user from local state
+      setUsers(users.filter(user => user.id !== userId));
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      setError('Failed to delete user. Please try again.');
+    } finally {
+      setDeleting(prev => ({ ...prev, [userId]: false }));
     }
   }
 
   async function handleToggleAdmin(userId: string, currentRole?: string) {
     try {
       const newRole = currentRole === 'admin' ? 'user' : 'admin';
+      
+      // First check if we're not removing the last admin
+      if (newRole === 'user') {
+        const adminCount = users.filter(u => u.user_roles?.role === 'admin').length;
+        if (adminCount <= 1) {
+          setError('Cannot remove the last admin user');
+          return;
+        }
+      }
+
       const { error } = await supabase
         .from('user_roles')
         .upsert({ user_id: userId, role: newRole });
 
       if (error) throw error;
-      loadUsers();
+
+      // Update local state
+      setUsers(users.map(user => 
+        user.id === userId 
+          ? { ...user, user_roles: { role: newRole } }
+          : user
+      ));
     } catch (error) {
       console.error('Error updating user role:', error);
-      alert('Failed to update user role');
+      setError('Failed to update user role');
     }
   }
 
@@ -149,7 +195,49 @@ export default function Admin() {
       loadUsers();
     } catch (error) {
       console.error('Error toggling user ban:', error);
-      alert('Failed to update user ban status');
+      setError('Failed to update user ban status');
+    }
+  }
+
+  async function handleResetOnboarding(userId: string) {
+    if (!confirm('Are you sure you want to reset this user\'s onboarding status?')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({
+          onboarding_completed: false,
+          username: null,
+          favorite_games: []
+        })
+        .eq('user_id', userId);
+
+      if (error) throw error;
+      loadUsers();
+    } catch (error) {
+      console.error('Error resetting onboarding:', error);
+      setError('Failed to reset onboarding status');
+    }
+  }
+
+  async function handleSendPasswordReset(userId: string, email: string) {
+    try {
+      setEmailSending(prev => ({ ...prev, [userId]: true }));
+      
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) throw error;
+
+      alert('Password reset email sent successfully');
+    } catch (error) {
+      console.error('Error sending password reset:', error);
+      setError('Failed to send password reset email');
+    } finally {
+      setEmailSending(prev => ({ ...prev, [userId]: false }));
     }
   }
 
@@ -168,7 +256,7 @@ export default function Admin() {
       loadClips();
     } catch (error) {
       console.error('Error deleting clip:', error);
-      alert('Failed to delete clip');
+      setError('Failed to delete clip');
     }
   }
 
@@ -212,6 +300,21 @@ export default function Admin() {
         </div>
       </div>
 
+      {error && (
+        <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 text-red-500">
+          {error}
+          <button
+            onClick={() => {
+              setError(null);
+              activeTab === 'users' ? loadUsers() : loadClips();
+            }}
+            className="ml-2 text-white hover:text-red-300"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
       {activeTab === 'users' ? (
         <div className="bg-gray-900 rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
@@ -243,7 +346,7 @@ export default function Admin() {
                         <div className="flex-shrink-0 h-10 w-10">
                           <img
                             className="h-10 w-10 rounded-full"
-                            src={`https://ui-avatars.com/api/?name=${user.user_profiles?.username || user.email}`}
+                            src={`https://api.dicebear.com/7.x/bottts/svg?seed=${user.user_profiles?.username || user.email}`}
                             alt=""
                           />
                         </div>
@@ -293,6 +396,37 @@ export default function Admin() {
                           <CheckCircle className="w-5 h-5" />
                         ) : (
                           <Ban className="w-5 h-5" />
+                        )}
+                      </button>
+                      <button
+                        onClick={() => handleSendPasswordReset(user.id, user.email)}
+                        disabled={emailSending[user.id]}
+                        className="text-gray-400 hover:text-white disabled:opacity-50"
+                        title="Send password reset email"
+                      >
+                        {emailSending[user.id] ? (
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : (
+                          <Mail className="w-5 h-5" />
+                        )}
+                      </button>
+                      <button
+                        onClick={() => handleResetOnboarding(user.id)}
+                        className="text-gray-400 hover:text-white"
+                        title="Reset onboarding"
+                      >
+                        <RefreshCw className="w-5 h-5" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteUser(user.id)}
+                        disabled={deleting[user.id] || user.user_roles?.role === 'admin'}
+                        className="text-red-500 hover:text-red-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                        title={user.user_roles?.role === 'admin' ? 'Cannot delete admin users' : 'Delete user'}
+                      >
+                        {deleting[user.id] ? (
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-5 h-5" />
                         )}
                       </button>
                     </td>

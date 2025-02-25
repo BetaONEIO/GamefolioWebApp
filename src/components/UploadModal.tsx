@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { X, Upload as UploadIcon, Loader2, Globe, User } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import GameSearch from './GameSearch';
 
 interface UploadModalProps {
   onClose: () => void;
@@ -210,15 +211,7 @@ export default function UploadModal({ onClose }: UploadModalProps) {
               <label htmlFor="game" className="block text-sm font-medium text-white mb-2">
                 Game
               </label>
-              <input
-                id="game"
-                type="text"
-                value={game}
-                onChange={(e) => setGame(e.target.value)}
-                className="w-full bg-gray-800 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9FE64F]"
-                placeholder="What game is this clip from?"
-                disabled={uploading}
-              />
+              <GameSearch onSelect={setGame} selectedGame={game} />
             </div>
 
             <div>

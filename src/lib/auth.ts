@@ -37,7 +37,6 @@ export async function signUp(email: string, password: string) {
       throw new Error('Signup failed. Please try again.');
     }
 
-    // Send confirmation email using Email.js
     await sendConfirmationEmail(email, `${window.location.origin}/confirm?email=${encodeURIComponent(email)}`);
 
     return { data, emailConfirmationRequired: true };
@@ -68,7 +67,7 @@ export async function signIn(email: string, password: string) {
       throw error;
     }
 
-    // After successful sign in, check if user needs onboarding
+    // Check onboarding status after successful sign in
     if (data.user) {
       const { data: profile, error: profileError } = await supabase
         .from('user_profiles')
@@ -77,11 +76,13 @@ export async function signIn(email: string, password: string) {
         .single();
 
       if (!profileError && profile) {
-        // Return onboarding status with auth data
+        const needsUsername = !profile.username || profile.username.startsWith('user_');
+        const needsOnboarding = !profile.onboarding_completed || !profile.favorite_games || profile.favorite_games.length < 5;
+
         return {
           ...data,
-          needsOnboarding: !profile.onboarding_completed || !profile.favorite_games || profile.favorite_games.length < 5,
-          needsUsername: !profile.username || profile.username.startsWith('user_')
+          needsUsername,
+          needsOnboarding
         };
       }
     }

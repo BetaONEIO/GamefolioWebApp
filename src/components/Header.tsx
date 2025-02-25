@@ -3,15 +3,23 @@ import { Search, BellDot, Upload, User, Settings, LogOut } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { signOut } from '../lib/auth';
+import { getUserAvatar } from '../lib/avatar';
 import UploadModal from './UploadModal';
 import AuthModal from './AuthModal';
+import NotificationsDropdown from './NotificationsDropdown';
+import { supabase } from '../lib/supabase';
 
 export default function Header() {
   const { session } = useAuth();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [username, setUsername] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const notificationsRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -19,11 +27,76 @@ export default function Header() {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsDropdownOpen(false);
       }
+      if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
+        setShowNotifications(false);
+      }
     }
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (session?.user) {
+      // Load user's profile
+      loadUserProfile();
+
+      // Subscribe to notifications
+      const channel = supabase
+        .channel('notifications')
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${session.user.id}`
+        }, () => {
+          loadUnreadCount();
+        })
+        .subscribe();
+
+      // Load initial unread count
+      loadUnreadCount();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [session]);
+
+  async function loadUserProfile() {
+    if (!session?.user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('username, avatar_url')
+        .eq('user_id', session.user.id)
+        .single();
+
+      if (error) throw error;
+      setUsername(data?.username || null);
+      setAvatarUrl(data?.avatar_url || null);
+    } catch (error) {
+      console.error('Error loading user profile:', error);
+    }
+  }
+
+  async function loadUnreadCount() {
+    if (!session?.user) return;
+
+    try {
+      const { count, error } = await supabase
+        .from('notifications')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', session.user.id)
+        .eq('read', false);
+
+      if (error) throw error;
+      setUnreadCount(count || 0);
+    } catch (error) {
+      console.error('Error loading unread count:', error);
+    }
+  }
 
   const handleNavigation = (path: string) => {
     navigate(path);
@@ -83,16 +156,30 @@ export default function Header() {
             </button>
             {session ? (
               <>
-                <button className="text-gray-400 hover:text-white">
-                  <BellDot className="w-6 h-6" />
-                </button>
+                <div className="relative" ref={notificationsRef}>
+                  <button 
+                    className="text-gray-400 hover:text-white relative"
+                    onClick={() => setShowNotifications(!showNotifications)}
+                  >
+                    <BellDot className="w-6 h-6" />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-[#9FE64F] text-black text-xs w-4 h-4 rounded-full flex items-center justify-center">
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                      </span>
+                    )}
+                  </button>
+                  <NotificationsDropdown 
+                    isOpen={showNotifications}
+                    onClose={() => setShowNotifications(false)}
+                  />
+                </div>
                 <div className="relative" ref={dropdownRef}>
                   <button 
                     className="w-8 h-8 rounded-full overflow-hidden ring-2 ring-transparent hover:ring-[#9FE64F] transition-all"
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                   >
                     <img
-                      src="https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=400"
+                      src={avatarUrl || getUserAvatar({ username: username || session.user.email || 'user', avatar_url: null })}
                       alt="Profile"
                       className="w-full h-full object-cover"
                     />
@@ -101,16 +188,18 @@ export default function Header() {
                   {isDropdownOpen && (
                     <div className="absolute right-0 mt-2 w-48 bg-gray-900 rounded-lg shadow-lg py-1 border border-gray-800">
                       <div className="px-4 py-3 border-b border-gray-800">
-                        <p className="text-sm font-medium text-white">{session.user.email}</p>
+                        <p className="text-sm font-medium text-white">{username || 'Set up username'}</p>
+                        <p className="text-xs text-gray-400 truncate">{session.user.email}</p>
                       </div>
                       
-                      <button 
-                        onClick={() => handleNavigation('/account/profile')}
+                      <Link 
+                        to={username ? `/@${username}` : '/account'}
+                        onClick={() => setIsDropdownOpen(false)}
                         className="w-full px-4 py-2 text-sm text-white hover:bg-gray-800 flex items-center space-x-2"
                       >
                         <User className="w-4 h-4" />
-                        <span>My Account</span>
-                      </button>
+                        <span>My Profile</span>
+                      </Link>
                       
                       <button 
                         onClick={() => handleNavigation('/account/settings')}
