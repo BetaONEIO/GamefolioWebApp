@@ -12,7 +12,7 @@ function logAuthError(action: string, error: any, details?: Record<string, any>)
 }
 
 export async function signUp(email: string, password: string) {
-  const redirectTo = `${window.location.origin}/account`;
+  const redirectTo = `${window.location.origin}/`;
   
   try {
     const { data, error } = await supabase.auth.signUp({
@@ -37,6 +37,7 @@ export async function signUp(email: string, password: string) {
       throw new Error('Signup failed. Please try again.');
     }
 
+    // Send welcome email using Email.js
     await sendConfirmationEmail(email, `${window.location.origin}/confirm?email=${encodeURIComponent(email)}`);
 
     return { data, emailConfirmationRequired: true };

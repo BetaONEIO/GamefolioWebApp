@@ -22,12 +22,24 @@ export async function sendConfirmationEmail(email: string, confirmationLink: str
         company_name: 'Gamefolio',
         company_address: 'Gaming Street 123, Esports City',
         verification_message: `
-          To start sharing your gaming moments, please verify your email address by clicking the button below:
+          Welcome to Gamefolio! We're excited to have you join our gaming community.
+          
+          To start sharing your gaming moments, please verify your email address by clicking the button below.
           
           Important: You won't be able to upload clips or interact with other users until your email is verified.
         `,
         verification_button_text: 'Verify Email Address',
-        verification_note: 'This link will expire in 24 hours. If you did not create this account, please ignore this email.'
+        verification_note: 'This link will expire in 24 hours. If you did not create this account, please ignore this email.',
+        logo_url: 'https://i.imgur.com/YourLogoURL.png',
+        primary_color: '#9FE64F',
+        background_color: '#000000',
+        text_color: '#FFFFFF',
+        accent_color: '#8FD63F',
+        social_links: {
+          twitter: 'https://twitter.com/gamefolio',
+          discord: 'https://discord.gg/gamefolio',
+          twitch: 'https://twitch.tv/gamefolio'
+        }
       }
     );
 
