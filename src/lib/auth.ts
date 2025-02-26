@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { sendConfirmationEmail } from './email';
+import { sendConfirmationEmail, sendPasswordResetEmail } from './email';
 
 function logAuthError(action: string, error: any, details?: Record<string, any>) {
   console.error(`Auth Error (${action}):`, {
@@ -37,8 +37,7 @@ export async function signUp(email: string, password: string) {
       throw new Error('Signup failed. Please try again.');
     }
 
-    // Send welcome email using Email.js
-    await sendConfirmationEmail(email, `${window.location.origin}/confirm?email=${encodeURIComponent(email)}`);
+    await sendConfirmationEmail(email, redirectTo);
 
     return { data, emailConfirmationRequired: true };
   } catch (error: any) {
@@ -66,26 +65,6 @@ export async function signIn(email: string, password: string) {
         throw new Error('Please verify your email before signing in');
       }
       throw error;
-    }
-
-    // Check onboarding status after successful sign in
-    if (data.user) {
-      const { data: profile, error: profileError } = await supabase
-        .from('user_profiles')
-        .select('username, onboarding_completed, favorite_games')
-        .eq('user_id', data.user.id)
-        .single();
-
-      if (!profileError && profile) {
-        const needsUsername = !profile.username || profile.username.startsWith('user_');
-        const needsOnboarding = !profile.onboarding_completed || !profile.favorite_games || profile.favorite_games.length < 5;
-
-        return {
-          ...data,
-          needsUsername,
-          needsOnboarding
-        };
-      }
     }
 
     return data;
@@ -116,12 +95,18 @@ export async function resetPassword(email: string) {
     });
 
     if (error) throw error;
+
+    // Send password reset email using EmailJS
+    await sendPasswordResetEmail(email);
+
+    return { success: true };
   } catch (error: any) {
     if (error.status === 429) {
       throw new Error('Too many requests. Please wait a few minutes and try again.');
     }
+    
     logAuthError('reset-password', error, { email });
-    throw new Error('Failed to send password reset email. Please try again.');
+    throw new Error(error.message || 'Failed to send password reset email. Please try again.');
   }
 }
 
@@ -132,29 +117,15 @@ export async function updatePassword(newPassword: string) {
     });
 
     if (error) throw error;
+    return { success: true };
   } catch (error: any) {
     logAuthError('update-password', error);
-    throw new Error('Failed to update password. Please try again.');
+    throw new Error(error.message || 'Failed to update password. Please try again.');
   }
 }
 
 export function onAuthStateChange(callback: (session: any) => void) {
-  return supabase.auth.onAuthStateChange(async (_event, session) => {
-    if (session?.user) {
-      // Check onboarding status whenever auth state changes
-      const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('username, onboarding_completed, favorite_games')
-        .eq('user_id', session.user.id)
-        .single();
-
-      callback({
-        ...session,
-        needsOnboarding: !profile?.onboarding_completed || !profile?.favorite_games || profile?.favorite_games.length < 5,
-        needsUsername: !profile?.username || profile?.username.startsWith('user_')
-      });
-    } else {
-      callback(session);
-    }
+  return supabase.auth.onAuthStateChange((_event, session) => {
+    callback(session);
   });
 }

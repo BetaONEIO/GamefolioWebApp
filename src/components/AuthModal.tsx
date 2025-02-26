@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { X, Loader2, Eye, EyeOff, Mail, RefreshCw } from 'lucide-react';
-import { signIn, signUp } from '../lib/auth';
+import { signIn, signUp, resetPassword } from '../lib/auth';
 import { sendConfirmationEmail } from '../lib/email';
-import { useNavigate } from 'react-router-dom';
+import ForgotPasswordModal from './ForgotPasswordModal';
 
 interface AuthModalProps {
   onClose: () => void;
@@ -20,8 +20,7 @@ const PASSWORD_REQUIREMENTS = [
 const RATE_LIMIT_COOLDOWN = 60; // 60 seconds cooldown
 
 export default function AuthModal({ onClose, defaultMode = 'login' }: AuthModalProps) {
-  const navigate = useNavigate();
-  const [mode, setMode] = useState<'login' | 'signup' | 'check-email'>(defaultMode);
+  const [mode, setMode] = useState<'login' | 'signup' | 'check-email' | 'forgot-password'>(defaultMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -85,22 +84,14 @@ export default function AuthModal({ onClose, defaultMode = 'login' }: AuthModalP
         await signUp(email, password);
         setMode('check-email');
       } else {
-        const response = await signIn(email, password);
-        if (response.needsUsername || response.needsOnboarding) {
-          // Close modal and let protected route handle the flow
-          onClose();
-          navigate('/account');
-        } else {
-          onClose();
-        }
+        await signIn(email, password);
+        onClose();
       }
     } catch (err) {
       if (err instanceof Error) {
         if (err.message.includes('rate limit') || err.message.includes('Too many signup attempts')) {
           setCooldownTime(RATE_LIMIT_COOLDOWN);
           setError(`Too many attempts. Please wait ${RATE_LIMIT_COOLDOWN} seconds before trying again.`);
-        } else if (err.message.includes('Email not confirmed')) {
-          setMode('check-email');
         } else {
           setError(err.message);
         }
@@ -138,6 +129,15 @@ export default function AuthModal({ onClose, defaultMode = 'login' }: AuthModalP
       setResending(false);
     }
   };
+
+  if (mode === 'forgot-password') {
+    return (
+      <ForgotPasswordModal
+        onClose={onClose}
+        onBack={() => setMode('login')}
+      />
+    );
+  }
 
   if (mode === 'check-email') {
     return (
@@ -303,6 +303,18 @@ export default function AuthModal({ onClose, defaultMode = 'login' }: AuthModalP
                 <p className="text-sm text-red-500">Passwords do not match</p>
               )}
             </>
+          )}
+
+          {mode === 'login' && (
+            <div className="text-right">
+              <button
+                type="button"
+                onClick={() => setMode('forgot-password')}
+                className="text-sm text-[#9FE64F] hover:text-[#8FD63F]"
+              >
+                Forgot password?
+              </button>
+            </div>
           )}
 
           <button

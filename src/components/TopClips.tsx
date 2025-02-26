@@ -22,25 +22,10 @@ export default function TopClips() {
       setLoading(true);
       setError(null);
       
-      // Get clips with user profiles in a single query
+      // Get clips with user profiles using the view
       const { data: clipsData, error: clipsError } = await supabase
-        .from('clips')
-        .select(`
-          id,
-          user_id,
-          title,
-          game,
-          video_url,
-          thumbnail_url,
-          likes,
-          comments,
-          shares,
-          created_at,
-          user_profiles (
-            username,
-            avatar_url
-          )
-        `)
+        .from('clips_with_profiles')
+        .select('*')
         .eq('visibility', 'public')
         .order('created_at', { ascending: false })
         .limit(12);
@@ -60,8 +45,8 @@ export default function TopClips() {
       const formattedClips: GameClip[] = clipsData.map(clip => ({
         id: clip.id,
         userId: clip.user_id,
-        username: clip.user_profiles?.username || 'Unknown User',
-        userAvatar: clip.user_profiles?.avatar_url || 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=400',
+        username: clip.username || 'Unknown User',
+        userAvatar: clip.avatar_url || getUserAvatar(clip.username || 'unknown'),
         title: clip.title,
         videoUrl: clip.video_url,
         thumbnail: clip.thumbnail_url || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800',
@@ -83,6 +68,11 @@ export default function TopClips() {
 
   const handleRetry = () => {
     setRetryCount(count => count + 1);
+  };
+
+  // Helper function to get avatar URL
+  const getUserAvatar = (username: string) => {
+    return `https://api.dicebear.com/7.x/initials/svg?seed=${username}&backgroundColor=9FE64F&textColor=000000`;
   };
 
   return (

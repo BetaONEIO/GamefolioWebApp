@@ -2,6 +2,7 @@ import emailjs from '@emailjs/browser';
 
 const SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID;
 const TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
+const RESET_TEMPLATE_ID = import.meta.env.VITE_EMAILJS_RESET_TEMPLATE_ID;
 const PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
 
 // Initialize emailjs with the public key
@@ -50,6 +51,45 @@ export async function sendConfirmationEmail(email: string, confirmationLink: str
     }
   } catch (error) {
     console.error('Failed to send confirmation email:', error);
+    throw error;
+  }
+}
+
+export async function sendPasswordResetEmail(email: string) {
+  try {
+    const response = await emailjs.send(
+      SERVICE_ID,
+      RESET_TEMPLATE_ID,
+      {
+        to_email: email,
+        subject: 'Reset Your Gamefolio Password',
+        user_email: email,
+        site_name: 'Gamefolio',
+        support_email: 'support@gamefolio.com',
+        company_name: 'Gamefolio',
+        company_address: 'Gaming Street 123, Esports City',
+        reset_message: `
+          We received a request to reset your password. Click the button below to choose a new password.
+          
+          If you didn't request a password reset, you can safely ignore this email. Your password will not be changed.
+        `,
+        reset_button_text: 'Reset Password',
+        reset_note: 'This link will expire in 24 hours for security reasons.',
+        logo_url: 'https://i.imgur.com/YourLogoURL.png',
+        primary_color: '#9FE64F',
+        background_color: '#000000',
+        text_color: '#FFFFFF',
+        accent_color: '#8FD63F'
+      }
+    );
+
+    if (response.status === 200) {
+      return response;
+    } else {
+      throw new Error('Failed to send password reset email');
+    }
+  } catch (error) {
+    console.error('Failed to send password reset email:', error);
     throw error;
   }
 }
