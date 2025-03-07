@@ -50,30 +50,64 @@ export async function signUp(email: string, password: string) {
   }
 }
 
-export async function signIn(email: string, password: string) {
+export async function signIn(identifier: string, password: string) {
   try {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    
-    if (error) {
-      if (error.message === 'Invalid login credentials') {
-        throw new Error('Invalid email or password');
+    // First, check if the identifier is an email
+    const isEmail = identifier.includes('@');
+
+    if (isEmail) {
+      // Try direct email login
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: identifier,
+        password,
+      });
+      
+      if (!error) return data;
+      
+      if (error.message !== 'Invalid login credentials') {
+        throw error;
       }
-      if (error.message === 'Email not confirmed') {
-        throw new Error('Please verify your email before signing in');
+    } else {
+      // Try to find user by username using the users_with_roles view
+      const { data: userData, error: userError } = await supabase
+        .from('users_with_roles')
+        .select('id, email')
+        .eq('username', identifier)
+        .single();
+
+      if (userError) {
+        if (userError.code === 'PGRST116') {
+          throw new Error('Invalid username or password');
+        }
+        throw userError;
       }
-      throw error;
+
+      // Try login with the found email
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: userData.email,
+        password,
+      });
+
+      if (error) {
+        if (error.message === 'Invalid login credentials') {
+          throw new Error('Invalid username or password');
+        }
+        if (error.message === 'Email not confirmed') {
+          throw new Error('Please verify your email before signing in');
+        }
+        throw error;
+      }
+
+      return data;
     }
 
-    return data;
+    throw new Error('Invalid email or password');
   } catch (error: any) {
     if (error.status === 429) {
       throw new Error('Too many requests. Please wait a few minutes and try again.');
     }
     
-    logAuthError('signin', error, { email });
+    logAuthError('signin', error, { identifier });
     throw new Error(error.message || 'Failed to sign in. Please try again.');
   }
 }

@@ -3,58 +3,104 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Profile from '../components/Profile';
 import ClipGrid from '../components/ClipGrid';
 import { supabase } from '../lib/supabase';
-import { User } from '../types';
+import { User, GameClip } from '../types';
+import { Loader2 } from 'lucide-react';
 
 export default function UserProfile() {
   const { username } = useParams();
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
+  const [clips, setClips] = useState<GameClip[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const getAvatarUrl = (username: string) => {
-    return `https://api.dicebear.com/7.x/initials/svg?seed=${username}&backgroundColor=9FE64F&textColor=000000`;
-  };
 
   useEffect(() => {
     async function loadUserProfile() {
       if (!username) return;
 
       try {
-        const { data, error } = await supabase
-          .from('user_profiles')
+        // Get user profile from users_with_roles view
+        const { data: userData, error: userError } = await supabase
+          .from('users_with_roles')
           .select(`
-            user_id,
+            id,
             username,
             avatar_url,
             bio,
             favorite_games,
             followers,
             following,
-            views
+            views,
+            social_links,
+            onboarding_completed,
+            banned
           `)
           .eq('username', username)
           .single();
 
-        if (error) throw error;
+        if (userError) throw userError;
 
-        if (data) {
-          setUser({
-            id: data.user_id,
-            username: data.username,
-            avatar: data.avatar_url || getAvatarUrl(data.username),
-            bio: data.bio || 'No bio yet',
-            followers: data.followers || 0,
-            following: data.following || 0,
-            views: data.views || 0,
-            favoriteGames: data.favorite_games || []
-          });
-
-          document.title = `${data.username} - Gamefolio`;
+        if (!userData) {
+          throw new Error('User not found');
         }
+
+        // Transform the data to match our User type
+        setUser({
+          id: userData.id,
+          username: userData.username,
+          avatar: userData.avatar_url || null,
+          bio: userData.bio || 'No bio yet',
+          followers: userData.followers || 0,
+          following: userData.following || 0,
+          views: userData.views || 0,
+          favoriteGames: userData.favorite_games || [],
+          socialLinks: userData.social_links || {}
+        });
+
+        // Load user's clips
+        const { data: clipsData, error: clipsError } = await supabase
+          .from('clips_with_profiles')
+          .select(`
+            id,
+            user_id,
+            title,
+            game,
+            video_url,
+            thumbnail_url,
+            likes,
+            comments,
+            shares,
+            visibility,
+            created_at,
+            username,
+            avatar_url
+          `)
+          .eq('user_id', userData.id)
+          .eq('visibility', 'public')
+          .order('created_at', { ascending: false });
+
+        if (clipsError) throw clipsError;
+
+        const formattedClips: GameClip[] = (clipsData || []).map(clip => ({
+          id: clip.id,
+          userId: clip.user_id,
+          username: clip.username,
+          userAvatar: clip.avatar_url,
+          title: clip.title,
+          videoUrl: clip.video_url,
+          thumbnail: clip.thumbnail_url || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800',
+          game: clip.game,
+          likes: clip.likes || 0,
+          comments: clip.comments || 0,
+          shares: clip.shares || 0,
+          createdAt: clip.created_at
+        }));
+
+        setClips(formattedClips);
+        document.title = `${userData.username} - Gamefolio`;
       } catch (error) {
         console.error('Error loading user profile:', error);
-        setError('Failed to load user profile');
+        setError('User not found');
         navigate('/404');
       } finally {
         setLoading(false);
@@ -65,7 +111,11 @@ export default function UserProfile() {
   }, [username, navigate]);
 
   if (loading) {
-    return <div className="min-h-screen bg-black pt-20">Loading...</div>;
+    return (
+      <div className="min-h-screen bg-black pt-20 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[#9FE64F]" />
+      </div>
+    );
   }
 
   if (error || !user) {
@@ -94,7 +144,7 @@ export default function UserProfile() {
               </button>
             </nav>
           </div>
-          <ClipGrid clips={[]} />
+          <ClipGrid clips={clips} />
         </div>
       </div>
     </div>

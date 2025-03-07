@@ -21,6 +21,7 @@ const RATE_LIMIT_COOLDOWN = 60; // 60 seconds cooldown
 
 export default function AuthModal({ onClose, defaultMode = 'login' }: AuthModalProps) {
   const [mode, setMode] = useState<'login' | 'signup' | 'check-email' | 'forgot-password'>(defaultMode);
+  const [identifier, setIdentifier] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -84,7 +85,7 @@ export default function AuthModal({ onClose, defaultMode = 'login' }: AuthModalP
         await signUp(email, password);
         setMode('check-email');
       } else {
-        await signIn(email, password);
+        await signIn(identifier, password);
         onClose();
       }
     } catch (err) {
@@ -229,17 +230,31 @@ export default function AuthModal({ onClose, defaultMode = 'login' }: AuthModalP
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-gray-800 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9FE64F]"
-              disabled={loading || cooldownTime > 0}
-              required
-            />
-          </div>
+          {mode === 'login' ? (
+            <div>
+              <input
+                type="text"
+                placeholder="Email or Username"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                className="w-full bg-gray-800 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9FE64F]"
+                disabled={loading || cooldownTime > 0}
+                required
+              />
+            </div>
+          ) : (
+            <div>
+              <input
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full bg-gray-800 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9FE64F]"
+                disabled={loading || cooldownTime > 0}
+                required
+              />
+            </div>
+          )}
 
           <div className="relative">
             <input

@@ -15,7 +15,7 @@ interface Comment {
   id: string;
   content: string;
   created_at: string;
-  user_profiles: {
+  users_with_roles: {
     username: string;
     avatar_url: string;
   };
@@ -50,7 +50,7 @@ export default function ClipLightbox({ clip, onClose }: ClipLightboxProps) {
           id,
           content,
           created_at,
-          user_profiles (
+          users_with_roles!user_id (
             username,
             avatar_url
           )
@@ -74,7 +74,7 @@ export default function ClipLightbox({ clip, onClose }: ClipLightboxProps) {
         .select('id')
         .eq('clip_id', clip.id)
         .eq('user_id', session.user.id)
-        .single();
+        .maybeSingle(); // Use maybeSingle instead of single to handle no results
 
       if (error && error.code !== 'PGRST116') throw error;
       setIsLiked(!!data);
@@ -95,8 +95,7 @@ export default function ClipLightbox({ clip, onClose }: ClipLightboxProps) {
           .from('likes')
           .delete()
           .eq('clip_id', clip.id)
-          .eq('user_id', session.user.id)
-          .single();
+          .eq('user_id', session.user.id);
 
         if (error) throw error;
         setIsLiked(false);
@@ -104,8 +103,7 @@ export default function ClipLightbox({ clip, onClose }: ClipLightboxProps) {
       } else {
         const { error } = await supabase
           .from('likes')
-          .insert({ clip_id: clip.id, user_id: session.user.id })
-          .single();
+          .insert({ clip_id: clip.id, user_id: session.user.id });
 
         if (error) {
           if (error.message.includes('confirmed')) {
@@ -141,8 +139,7 @@ export default function ClipLightbox({ clip, onClose }: ClipLightboxProps) {
           clip_id: clip.id,
           user_id: session.user.id,
           content: newComment.trim()
-        })
-        .single();
+        });
 
       if (error) {
         if (error.message.includes('confirmed')) {
@@ -219,20 +216,20 @@ export default function ClipLightbox({ clip, onClose }: ClipLightboxProps) {
             
             {comments.map((comment) => (
               <div key={comment.id} className="flex space-x-3">
-                <Link to={`/@${comment.user_profiles.username}`}>
+                <Link to={`/@${comment.users_with_roles.username}`}>
                   <img
-                    src={comment.user_profiles.avatar_url || getAvatarUrl(comment.user_profiles.username)}
-                    alt={comment.user_profiles.username}
+                    src={comment.users_with_roles.avatar_url || getAvatarUrl(comment.users_with_roles.username)}
+                    alt={comment.users_with_roles.username}
                     className="w-8 h-8 rounded-full hover:ring-2 hover:ring-[#9FE64F] transition-all"
                   />
                 </Link>
                 <div>
                   <p className="text-sm">
                     <Link 
-                      to={`/@${comment.user_profiles.username}`}
+                      to={`/@${comment.users_with_roles.username}`}
                       className="font-medium text-white hover:text-[#9FE64F] transition-colors"
                     >
-                      {comment.user_profiles.username}
+                      {comment.users_with_roles.username}
                     </Link>
                     <span className="text-gray-400 ml-2">{comment.content}</span>
                   </p>

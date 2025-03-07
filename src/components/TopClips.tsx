@@ -25,7 +25,22 @@ export default function TopClips() {
       // Get clips with user profiles using the view
       const { data: clipsData, error: clipsError } = await supabase
         .from('clips_with_profiles')
-        .select('*')
+        .select(`
+          id,
+          user_id,
+          title,
+          game,
+          video_url,
+          thumbnail_url,
+          likes,
+          comments,
+          shares,
+          visibility,
+          created_at,
+          updated_at,
+          username,
+          avatar_url
+        `)
         .eq('visibility', 'public')
         .order('created_at', { ascending: false })
         .limit(12);
@@ -37,7 +52,7 @@ export default function TopClips() {
         throw clipsError;
       }
 
-      if (!clipsData || clipsData.length === 0) {
+      if (!clipsData) {
         setClips([]);
         return;
       }

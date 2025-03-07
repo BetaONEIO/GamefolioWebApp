@@ -33,7 +33,10 @@ export default function NotificationsDropdown({ isOpen, onClose }: Notifications
         .from('notifications')
         .select(`
           *,
-          actors:user_profiles!actor_id(username, avatar_url)
+          actor:users_with_roles!actor_id (
+            username,
+            avatar_url
+          )
         `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
@@ -111,14 +114,14 @@ export default function NotificationsDropdown({ isOpen, onClose }: Notifications
               }`}
             >
               <div className="flex-shrink-0">
-                {notification.data?.actorId ? (
-                  <Link to={`/@${notification.data.actorUsername}`}>
+                {notification.actor ? (
+                  <Link to={`/@${notification.actor.username}`}>
                     <img
                       src={getUserAvatar({ 
-                        username: notification.data.actorUsername || '', 
-                        avatar_url: null 
+                        username: notification.actor.username, 
+                        avatar_url: notification.actor.avatar_url 
                       })}
-                      alt={notification.data.actorUsername}
+                      alt={notification.actor.username}
                       className="w-10 h-10 rounded-full"
                     />
                   </Link>
@@ -132,16 +135,14 @@ export default function NotificationsDropdown({ isOpen, onClose }: Notifications
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between">
                   <p className="text-sm text-white">
-                    <span className="font-medium">
-                      {notification.data?.actorUsername && (
-                        <Link 
-                          to={`/@${notification.data.actorUsername}`}
-                          className="hover:text-[#9FE64F]"
-                        >
-                          {notification.data.actorUsername}
-                        </Link>
-                      )}
-                    </span>{' '}
+                    {notification.actor && (
+                      <Link 
+                        to={`/@${notification.actor.username}`}
+                        className="font-medium hover:text-[#9FE64F]"
+                      >
+                        {notification.actor.username}
+                      </Link>
+                    )}{' '}
                     {notification.message}
                   </p>
                   <span className="text-xs text-gray-400 whitespace-nowrap ml-2">

@@ -6,6 +6,7 @@ import { getUserAvatar } from '../../lib/avatar';
 import { supabase } from '../../lib/supabase';
 import { GameClip } from '../../types';
 import { Link } from 'react-router-dom';
+import { Loader2 } from 'lucide-react';
 
 type Tab = 'gamefolio' | 'clips' | 'liked';
 
@@ -15,28 +16,34 @@ export default function MyGamefolio() {
   const [clips, setClips] = useState<GameClip[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Mock user data with session info
-  const mockUser = {
-    id: session?.user.id || '123',
-    username: session?.user.email?.split('@')[0] || 'DemoPlayer',
-    avatar: getUserAvatar({ username: session?.user.email || 'DemoPlayer', avatar_url: null }),
-    bio: 'Professional gamer and content creator. Sharing my best gaming moments!',
-    followers: 1250,
-    following: 450,
-    views: 25000,
-    favoriteGames: ['Valorant', 'Counter-Strike 2', 'Apex Legends', 'Overwatch 2', 'Call of Duty: Warzone'],
-    socialLinks: {
-      twitch: 'demoplayer',
-      youtube: 'DemoPlayer',
-      twitter: 'demoplayer',
-      steam: 'demoplayer'
-    }
-  };
+  const [profile, setProfile] = useState<any>(null);
 
   useEffect(() => {
-    loadClips();
-  }, [activeTab]);
+    if (session?.user) {
+      loadUserProfile();
+    }
+  }, [session]);
+
+  useEffect(() => {
+    if (session?.user) {
+      loadClips();
+    }
+  }, [activeTab, session]);
+
+  async function loadUserProfile() {
+    try {
+      const { data, error } = await supabase
+        .from('users_with_roles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+
+      if (error) throw error;
+      setProfile(data);
+    } catch (error) {
+      console.error('Error loading user profile:', error);
+    }
+  }
 
   async function loadClips() {
     if (!session?.user) return;
@@ -46,7 +53,7 @@ export default function MyGamefolio() {
 
     try {
       let query = supabase
-        .from('clips')
+        .from('clips_with_profiles')
         .select(`
           id,
           user_id,
@@ -57,20 +64,35 @@ export default function MyGamefolio() {
           likes,
           comments,
           shares,
+          visibility,
           created_at,
-          user_profiles (
-            username,
-            avatar_url
-          )
-        `)
-        .order('created_at', { ascending: false });
+          username,
+          avatar_url
+        `);
 
       if (activeTab === 'clips') {
-        query = query.eq('user_id', session.user.id);
-      } else if (activeTab === 'liked') {
         query = query
-          .eq('likes.user_id', session.user.id)
-          .innerJoin('likes', { 'clips.id': 'likes.clip_id' });
+          .eq('user_id', session.user.id)
+          .order('created_at', { ascending: false });
+      } else if (activeTab === 'liked') {
+        // Get clips that the user has liked
+        const { data: likedClips, error: likesError } = await supabase
+          .from('likes')
+          .select('clip_id')
+          .eq('user_id', session.user.id);
+
+        if (likesError) throw likesError;
+
+        const clipIds = likedClips.map(like => like.clip_id);
+        
+        if (clipIds.length === 0) {
+          setClips([]);
+          return;
+        }
+
+        query = query
+          .in('id', clipIds)
+          .order('created_at', { ascending: false });
       }
 
       const { data, error } = await query;
@@ -80,8 +102,8 @@ export default function MyGamefolio() {
       const formattedClips: GameClip[] = (data || []).map(clip => ({
         id: clip.id,
         userId: clip.user_id,
-        username: clip.user_profiles.username,
-        userAvatar: clip.user_profiles.avatar_url,
+        username: clip.username,
+        userAvatar: clip.avatar_url,
         title: clip.title,
         videoUrl: clip.video_url,
         thumbnail: clip.thumbnail_url || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800',
@@ -101,9 +123,30 @@ export default function MyGamefolio() {
     }
   }
 
+  if (!profile) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-[#9FE64F]" />
+      </div>
+    );
+  }
+
+  // Transform profile data to match User type
+  const user = {
+    id: profile.id,
+    username: profile.username,
+    avatar: profile.avatar_url,
+    bio: profile.bio || 'No bio yet',
+    followers: profile.followers || 0,
+    following: profile.following || 0,
+    views: profile.views || 0,
+    favoriteGames: profile.favorite_games || [],
+    socialLinks: profile.social_links || {}
+  };
+
   return (
     <div>
-      <Profile user={mockUser} isOwnProfile={true} />
+      <Profile user={user} isOwnProfile={true} />
       <div className="mt-8">
         <div className="border-b border-gray-800 mb-8">
           <nav className="flex space-x-8">
@@ -142,7 +185,7 @@ export default function MyGamefolio() {
 
         {loading ? (
           <div className="text-center py-12">
-            <div className="animate-spin w-8 h-8 border-2 border-[#9FE64F] border-t-transparent rounded-full mx-auto"></div>
+            <Loader2 className="w-8 h-8 animate-spin text-[#9FE64F] mx-auto" />
           </div>
         ) : error ? (
           <div className="text-center py-12 text-red-500">
