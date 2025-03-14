@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Trophy, Users, TrendingUp, Gamepad } from 'lucide-react';
+import { Search, Trophy, Users, TrendingUp, Gamepad, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import ClipGrid from '../../components/ClipGrid';
 import { GameClip } from '../../types';
@@ -16,6 +16,7 @@ interface Category {
   id: string;
   name: string;
   games: string[];
+  icon: React.ReactNode;
 }
 
 export default function Explore() {
@@ -26,27 +27,53 @@ export default function Explore() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Mock categories - in production these would come from the database
+  // Categories with their associated games - using exact game names from the database
   const categories: Category[] = [
     {
       id: 'fps',
       name: 'FPS',
-      games: ['Valorant', 'Counter-Strike 2', 'Apex Legends', 'Call of Duty: Warzone']
+      icon: <Trophy className="w-4 h-4" />,
+      games: [
+        'Valorant',
+        'Counter-Strike 2',
+        'Apex Legends',
+        'Call of Duty: Warzone',
+        'Rainbow Six Siege',
+        'Overwatch 2'
+      ]
     },
     {
       id: 'moba',
       name: 'MOBA',
-      games: ['League of Legends', 'Dota 2']
+      icon: <TrendingUp className="w-4 h-4" />,
+      games: [
+        'League of Legends',
+        'Dota 2'
+      ]
     },
     {
       id: 'battle-royale',
       name: 'Battle Royale',
-      games: ['Fortnite', 'PUBG: BATTLEGROUNDS', 'Apex Legends']
+      icon: <Users className="w-4 h-4" />,
+      games: [
+        'Fortnite',
+        'PUBG: BATTLEGROUNDS',
+        'Apex Legends',
+        'Call of Duty: Warzone'
+      ]
     },
     {
       id: 'rpg',
       name: 'RPG',
-      games: ['Elden Ring', 'Baldur\'s Gate 3', 'Cyberpunk 2077']
+      icon: <Gamepad className="w-4 h-4" />,
+      games: [
+        'Elden Ring',
+        'Baldur\'s Gate 3',
+        'Cyberpunk 2077',
+        'Starfield',
+        'Diablo IV',
+        'World of Warcraft'
+      ]
     }
   ];
 
@@ -75,23 +102,27 @@ export default function Explore() {
 
       setGames(transformedGames);
 
-      // Get clips with filters using the view
+      // Build the query
       let query = supabase
         .from('clips_with_profiles')
         .select('*')
-        .eq('visibility', 'public')
-        .order('created_at', { ascending: false });
+        .eq('visibility', 'public');
 
       // Apply category filter
       if (selectedCategory) {
         const categoryGames = categories.find(c => c.id === selectedCategory)?.games || [];
-        query = query.in('game', categoryGames);
+        if (categoryGames.length > 0) {
+          query = query.in('game', categoryGames);
+        }
       }
 
       // Apply search filter
-      if (searchQuery) {
-        query = query.ilike('game', `%${searchQuery}%`);
+      if (searchQuery.trim()) {
+        query = query.ilike('game', `%${searchQuery.trim()}%`);
       }
+
+      // Add ordering
+      query = query.order('created_at', { ascending: false });
 
       const { data: clipsData, error: clipsError } = await query.limit(12);
 
@@ -128,47 +159,53 @@ export default function Explore() {
   return (
     <div className="space-y-8">
       {/* Search and Categories */}
-      <div className="space-y-4">
-        <div className="relative max-w-xl">
-          <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search games..."
-            className="w-full bg-gray-800 text-white pl-10 pr-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9FE64F]"
-          />
+      <div className="max-w-7xl mx-auto px-4">
+        {/* Search Bar */}
+        <div className="mb-6">
+          <div className="relative max-w-xl mx-auto">
+            <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search games..."
+              className="w-full bg-gray-800 text-white pl-10 pr-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#9FE64F]"
+            />
+          </div>
         </div>
 
-        <div className="flex space-x-2 overflow-x-auto pb-2">
+        {/* Categories */}
+        <div className="flex justify-center space-x-2 overflow-x-auto pb-2">
           <button
             onClick={() => setSelectedCategory(null)}
-            className={`px-4 py-2 rounded-full whitespace-nowrap ${
+            className={`px-4 py-2 rounded-full whitespace-nowrap flex items-center space-x-2 ${
               !selectedCategory
                 ? 'bg-[#9FE64F] text-black'
                 : 'bg-gray-800 text-gray-400 hover:text-white'
             }`}
           >
-            All Games
+            <Gamepad className="w-4 h-4" />
+            <span>All Games</span>
           </button>
           {categories.map((category) => (
             <button
               key={category.id}
               onClick={() => setSelectedCategory(category.id)}
-              className={`px-4 py-2 rounded-full whitespace-nowrap ${
+              className={`px-4 py-2 rounded-full whitespace-nowrap flex items-center space-x-2 ${
                 selectedCategory === category.id
                   ? 'bg-[#9FE64F] text-black'
                   : 'bg-gray-800 text-gray-400 hover:text-white'
               }`}
             >
-              {category.name}
+              {category.icon}
+              <span>{category.name}</span>
             </button>
           ))}
         </div>
       </div>
 
       {/* Top Games */}
-      <div>
+      <div className="max-w-7xl mx-auto px-4">
         <h2 className="text-2xl font-bold text-white mb-4">Top Games</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {games.map((game) => (
@@ -206,7 +243,7 @@ export default function Explore() {
       </div>
 
       {/* Top Clips */}
-      <div>
+      <div className="max-w-7xl mx-auto px-4">
         <h2 className="text-2xl font-bold text-white mb-4">
           {selectedCategory 
             ? `Top ${categories.find(c => c.id === selectedCategory)?.name} Clips`
@@ -218,7 +255,7 @@ export default function Explore() {
         
         {loading ? (
           <div className="flex justify-center py-12">
-            <div className="animate-spin w-8 h-8 border-2 border-[#9FE64F] border-t-transparent rounded-full"></div>
+            <Loader2 className="w-8 h-8 animate-spin text-[#9FE64F]" />
           </div>
         ) : error ? (
           <div className="text-center py-12">

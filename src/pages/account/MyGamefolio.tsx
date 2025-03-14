@@ -198,7 +198,7 @@ export default function MyGamefolio() {
             </button>
           </div>
         ) : clips.length > 0 ? (
-          <ClipGrid clips={clips} />
+          <ClipGrid clips={clips} onUpdate={loadClips} />
         ) : (
           <div className="text-center py-12 text-gray-400">
             {activeTab === 'clips' ? (

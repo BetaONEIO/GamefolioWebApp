@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { GameClip } from '../types';
-import { X, Heart, MessageCircle, Share2, Send } from 'lucide-react';
+import { X, Heart, MessageCircle, Send } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import AuthModal from './AuthModal';
+import ShareButton from './ShareButton';
 
 interface ClipLightboxProps {
   clip: GameClip;
@@ -42,6 +43,21 @@ export default function ClipLightbox({ clip, onClose }: ClipLightboxProps) {
     }
   }, [clip.id, session]);
 
+  // Add keyboard event listener for Escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleEscape);
+
+    return () => {
+      window.removeEventListener('keydown', handleEscape);
+    };
+  }, [onClose]);
+
   async function loadComments() {
     try {
       const { data, error } = await supabase
@@ -74,7 +90,7 @@ export default function ClipLightbox({ clip, onClose }: ClipLightboxProps) {
         .select('id')
         .eq('clip_id', clip.id)
         .eq('user_id', session.user.id)
-        .maybeSingle(); // Use maybeSingle instead of single to handle no results
+        .maybeSingle();
 
       if (error && error.code !== 'PGRST116') throw error;
       setIsLiked(!!data);
@@ -159,28 +175,35 @@ export default function ClipLightbox({ clip, onClose }: ClipLightboxProps) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
       <button 
         onClick={onClose}
-        className="absolute top-4 right-4 text-white hover:text-gray-300"
+        className="absolute top-4 right-4 text-white hover:text-gray-300 z-50"
       >
         <X className="w-6 h-6" />
       </button>
 
-      <div className="flex w-full max-w-7xl h-[80vh] mx-4">
-        {/* Video/Image Section */}
+      <div className="flex flex-col lg:flex-row w-full max-w-7xl h-[80vh]">
+        {/* Video Section */}
         <div className="flex-1 bg-black">
           <div className="relative h-full">
-            <img
-              src={clip.thumbnail}
-              alt={clip.title}
+            <video
+              src={clip.videoUrl}
+              poster={clip.thumbnail}
+              controls
+              autoPlay
+              playsInline
+              preload="auto"
               className="w-full h-full object-contain"
-            />
+            >
+              <source src={clip.videoUrl} type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
           </div>
         </div>
 
         {/* Comments Section */}
-        <div className="w-[400px] bg-gray-900 flex flex-col">
+        <div className="w-full lg:w-[400px] bg-gray-900 flex flex-col h-full">
           {/* Clip Info */}
           <div className="p-4 border-b border-gray-800">
             <div className="flex items-center space-x-3 mb-3">
@@ -209,7 +232,7 @@ export default function ClipLightbox({ clip, onClose }: ClipLightboxProps) {
           {/* Comments List */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {error && (
-              <div className="p-4 bg-red-500/10 border border-red-500 rounded-lg text-red-500 text-sm mb-4">
+              <div className="mb-4 p-4 bg-red-500/10 border border-red-500 rounded-lg text-red-500 text-sm">
                 {error}
               </div>
             )}
@@ -257,9 +280,14 @@ export default function ClipLightbox({ clip, onClose }: ClipLightboxProps) {
                 <button className="text-white hover:text-gray-300">
                   <MessageCircle className="w-6 h-6" />
                 </button>
-                <button className="text-white hover:text-gray-300">
-                  <Share2 className="w-6 h-6" />
-                </button>
+                <ShareButton
+                  clipId={clip.id}
+                  username={clip.username}
+                  title={clip.title}
+                  currentShares={clip.shares}
+                  size="md"
+                  showCount={false}
+                />
               </div>
             </div>
 

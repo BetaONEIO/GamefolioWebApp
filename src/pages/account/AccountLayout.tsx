@@ -18,9 +18,6 @@ export default function AccountLayout() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Check if we're on the profile page
-  const isProfilePage = location.pathname === '/account';
-
   React.useEffect(() => {
     async function checkAdminStatus() {
       if (!session?.user) {
@@ -64,33 +61,31 @@ export default function AccountLayout() {
 
   return (
     <div className="flex min-h-screen">
-      {/* Sidebar - Only show if not on profile page */}
-      {!isProfilePage && (
-        <aside className="w-64 bg-gray-900 border-r border-gray-800 fixed left-0 h-[calc(100vh-7rem)] top-28">
-          <nav className="p-4">
-            {allNavItems.map(({ to, icon: Icon, label, end }) => (
-              <NavLink
-                key={to}
-                to={to}
-                end={end}
-                className={({ isActive }) =>
-                  `flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                    isActive
-                      ? 'bg-[#9FE64F] text-black font-medium'
-                      : 'text-gray-400 hover:text-white hover:bg-gray-800'
-                  }`
-                }
-              >
-                <Icon className="w-5 h-5" />
-                <span>{label}</span>
-              </NavLink>
-            ))}
-          </nav>
-        </aside>
-      )}
+      {/* Sidebar */}
+      <aside className="w-64 bg-gray-900 border-r border-gray-800 fixed left-0 h-[calc(100vh-7rem)] top-28">
+        <nav className="p-4">
+          {allNavItems.map(({ to, icon: Icon, label, end }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={end}
+              className={({ isActive }) =>
+                `flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+                  isActive
+                    ? 'bg-[#9FE64F] text-black font-medium'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-800'
+                }`
+              }
+            >
+              <Icon className="w-5 h-5" />
+              <span>{label}</span>
+            </NavLink>
+          ))}
+        </nav>
+      </aside>
 
       {/* Main Content */}
-      <main className={`flex-1 ${!isProfilePage ? 'ml-64' : ''} p-8`}>
+      <main className="flex-1 ml-64 p-8">
         <Outlet />
       </main>
     </div>
