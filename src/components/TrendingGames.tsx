@@ -43,7 +43,7 @@ export default function TrendingGames() {
       setGames(transformedGames);
     } catch (error) {
       console.error('Error loading trending games:', error);
-      setError(error instanceof Error ? error.message : 'Failed to load trending games');
+      setError('Failed to load games');
     } finally {
       setLoading(false);
     }
@@ -107,6 +107,10 @@ export default function TrendingGames() {
                 loading="eager"
                 decoding="async"
                 fetchpriority="high"
+                onError={(e) => {
+                  const img = e.target as HTMLImageElement;
+                  img.src = DEFAULT_COVER;
+                }}
               />
               <div className="absolute top-2 right-2 bg-[#9FE64F] text-black px-2 py-1 rounded-full text-sm font-medium flex items-center space-x-1">
                 <TrendingUp className="w-4 h-4" />

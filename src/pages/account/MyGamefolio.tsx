@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import Profile from '../../components/Profile';
 import ClipGrid from '../../components/ClipGrid';
 import { useAuth } from '../../contexts/AuthContext';
-import { getUserAvatar } from '../../lib/avatar';
 import { supabase } from '../../lib/supabase';
 import { GameClip } from '../../types';
 import { Link } from 'react-router-dom';
@@ -10,40 +10,23 @@ import { Loader2 } from 'lucide-react';
 
 type Tab = 'gamefolio' | 'clips' | 'liked';
 
+interface OutletContextType {
+  profile: any;
+}
+
 export default function MyGamefolio() {
   const { session } = useAuth();
+  const { profile } = useOutletContext<OutletContextType>();
   const [activeTab, setActiveTab] = useState<Tab>('gamefolio');
   const [clips, setClips] = useState<GameClip[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [profile, setProfile] = useState<any>(null);
-
-  useEffect(() => {
-    if (session?.user) {
-      loadUserProfile();
-    }
-  }, [session]);
 
   useEffect(() => {
     if (session?.user) {
       loadClips();
     }
   }, [activeTab, session]);
-
-  async function loadUserProfile() {
-    try {
-      const { data, error } = await supabase
-        .from('users_with_roles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
-
-      if (error) throw error;
-      setProfile(data);
-    } catch (error) {
-      console.error('Error loading user profile:', error);
-    }
-  }
 
   async function loadClips() {
     if (!session?.user) return;
@@ -106,7 +89,7 @@ export default function MyGamefolio() {
         userAvatar: clip.avatar_url,
         title: clip.title,
         videoUrl: clip.video_url,
-        thumbnail: clip.thumbnail_url || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800',
+        thumbnail: clip.thumbnail_url || clip.video_url,
         game: clip.game,
         likes: clip.likes || 0,
         comments: clip.comments || 0,
@@ -121,14 +104,6 @@ export default function MyGamefolio() {
     } finally {
       setLoading(false);
     }
-  }
-
-  if (!profile) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="w-8 h-8 animate-spin text-[#9FE64F]" />
-      </div>
-    );
   }
 
   // Transform profile data to match User type

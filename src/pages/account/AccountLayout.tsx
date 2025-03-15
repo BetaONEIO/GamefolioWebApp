@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Home, Trophy, User, Settings as SettingsIcon, Shield } from 'lucide-react';
+import { Home, Trophy, User, Settings as SettingsIcon, Shield, Loader2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 
@@ -15,11 +15,13 @@ export default function AccountLayout() {
   const { session } = useAuth();
   const [isAdmin, setIsAdmin] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
+  const [profile, setProfile] = React.useState<any>(null);
+  const [error, setError] = React.useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
 
   React.useEffect(() => {
-    async function checkAdminStatus() {
+    async function loadUserProfile() {
       if (!session?.user) {
         navigate('/');
         return;
@@ -27,26 +29,29 @@ export default function AccountLayout() {
 
       try {
         setLoading(true);
-        // Use a direct query to check admin status
+        setError(null);
+
+        // Load user profile and role
         const { data, error } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', session.user.id)
+          .from('users_with_roles')
+          .select('*')
+          .eq('id', session.user.id)
           .single();
 
-        if (error && error.code !== 'PGRST116') {
-          console.error('Error checking admin status:', error);
-        }
-        
+        if (error) throw error;
+
+        setProfile(data);
         setIsAdmin(data?.role === 'admin');
       } catch (error) {
-        console.error('Error checking admin status:', error);
+        console.error('Error loading user profile:', error);
+        setError('Failed to load profile');
+        navigate('/');
       } finally {
         setLoading(false);
       }
     }
 
-    checkAdminStatus();
+    loadUserProfile();
   }, [session, navigate]);
 
   const allNavItems = React.useMemo(() => {
@@ -58,6 +63,28 @@ export default function AccountLayout() {
     }
     return navItems;
   }, [isAdmin]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-[#9FE64F]" />
+      </div>
+    );
+  }
+
+  if (error || !profile) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <p className="text-red-500 mb-4">{error || 'Profile not found'}</p>
+        <button
+          onClick={() => navigate('/')}
+          className="text-[#9FE64F] hover:text-[#8FD63F]"
+        >
+          Return Home
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen">
@@ -86,7 +113,7 @@ export default function AccountLayout() {
 
       {/* Main Content */}
       <main className="flex-1 ml-64 p-8">
-        <Outlet />
+        <Outlet context={{ profile }} />
       </main>
     </div>
   );

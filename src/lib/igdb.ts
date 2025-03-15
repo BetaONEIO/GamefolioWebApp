@@ -1,6 +1,9 @@
-import axios from 'axios';
+import { supabase } from './supabase';
 
-// Default game covers for fallback
+// Default cover for games without a specific cover
+export const DEFAULT_COVER = 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800';
+
+// Default game covers mapping
 export const DEFAULT_COVERS: Record<string, string> = {
   'Valorant': 'https://cdn.cloudflare.steamstatic.com/steam/apps/2284190/header.jpg',
   'Counter-Strike 2': 'https://cdn.cloudflare.steamstatic.com/steam/apps/730/header.jpg',
@@ -26,35 +29,27 @@ export const DEFAULT_COVERS: Record<string, string> = {
   'Roblox': 'https://images.rbxcdn.com/d66ae37d46e00a1ecacfe9531986690a.jpg',
   'Among Us': 'https://cdn.cloudflare.steamstatic.com/steam/apps/945360/header.jpg',
   'Genshin Impact': 'https://cdn.cloudflare.steamstatic.com/steam/apps/1971870/header.jpg',
-  'Palworld': 'https://cdn.cloudflare.steamstatic.com/steam/apps/1623730/header.jpg'
+  'Palworld': 'https://cdn.cloudflare.steamstatic.com/steam/apps/1623730/header.jpg',
+  'Hogs of War': 'https://cdn.cloudflare.steamstatic.com/steam/apps/412680/header.jpg'
 };
 
-// Default cover for games without a specific cover
-export const DEFAULT_COVER = 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800';
-
-interface Game {
-  id: string;
-  name: string;
-  coverUrl: string;
-}
-
-// Return a list of popular games with default covers
-export function getPopularGames(): Game[] {
-  return Object.entries(DEFAULT_COVERS).map(([name, coverUrl]) => ({
+// Get popular games
+export function getPopularGames() {
+  return Object.keys(DEFAULT_COVERS).map(name => ({
     id: name.toLowerCase().replace(/[^a-z0-9]/g, '-'),
     name,
-    coverUrl
+    coverUrl: DEFAULT_COVERS[name] || DEFAULT_COVER
   }));
 }
 
-// Search games using the default list
-export function searchGames(query: string): Game[] {
+// Search games
+export function searchGames(query: string) {
   const normalizedQuery = query.toLowerCase();
-  return Object.entries(DEFAULT_COVERS)
-    .filter(([name]) => name.toLowerCase().includes(normalizedQuery))
-    .map(([name, coverUrl]) => ({
+  return Object.keys(DEFAULT_COVERS)
+    .filter(name => name.toLowerCase().includes(normalizedQuery))
+    .map(name => ({
       id: name.toLowerCase().replace(/[^a-z0-9]/g, '-'),
       name,
-      coverUrl
+      coverUrl: DEFAULT_COVERS[name] || DEFAULT_COVER
     }));
 }

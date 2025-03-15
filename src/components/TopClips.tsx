@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ClipGrid from './ClipGrid';
 import { GameClip } from '../types';
 import { supabase } from '../lib/supabase';
-import { Loader2, RefreshCcw } from 'lucide-react';
+import { Loader2, RefreshCw } from 'lucide-react';
 
 type TimeRange = 'day' | 'week' | 'month';
 
@@ -37,7 +37,6 @@ export default function TopClips() {
           shares,
           visibility,
           created_at,
-          updated_at,
           username,
           avatar_url
         `)
@@ -64,6 +63,7 @@ export default function TopClips() {
         userAvatar: clip.avatar_url || getUserAvatar(clip.username || 'unknown'),
         title: clip.title,
         videoUrl: clip.video_url,
+        // Use video URL as fallback for thumbnail
         thumbnail: clip.thumbnail_url || clip.video_url,
         game: clip.game,
         likes: clip.likes || 0,
@@ -122,7 +122,7 @@ export default function TopClips() {
             onClick={handleRetry}
             className="flex items-center space-x-2 mx-auto px-4 py-2 bg-[#9FE64F] text-black rounded-lg hover:bg-[#8FD63F] transition-colors"
           >
-            <RefreshCcw className="w-4 h-4" />
+            <RefreshCw className="w-4 h-4" />
             <span>Try Again</span>
           </button>
         </div>

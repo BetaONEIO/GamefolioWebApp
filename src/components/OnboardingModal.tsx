@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Loader2, Search, X, AlertCircle } from 'lucide-react';
-import { searchGames, getTopGames, getPopularGames } from '../lib/games';
+import { searchGames, getPopularGames } from '../lib/igdb';
 
 interface OnboardingModalProps {
   onComplete: () => void;
@@ -11,7 +11,7 @@ interface OnboardingModalProps {
 interface Game {
   id: string;
   name: string;
-  cover?: string;
+  coverUrl?: string;
 }
 
 export default function OnboardingModal({ onComplete }: OnboardingModalProps) {
@@ -25,21 +25,22 @@ export default function OnboardingModal({ onComplete }: OnboardingModalProps) {
   const [error, setError] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
 
-  // Load top games on component mount
+  // Load popular games on component mount
   useEffect(() => {
-    async function loadTopGames() {
+    async function loadPopularGames() {
       try {
-        const games = await getTopGames(30);
+        setLoading(true);
+        const games = await getPopularGames();
         setTopGames(games);
       } catch (error) {
-        console.error('Error loading top games:', error);
-        setApiError('Could not load top games. Using fallback list.');
-        // Use the fallback list from getPopularGames
-        setTopGames(getPopularGames());
+        console.error('Error loading popular games:', error);
+        setApiError('Could not load games. Please try again.');
+      } finally {
+        setLoading(false);
       }
     }
     
-    loadTopGames();
+    loadPopularGames();
   }, []);
 
   // Handle game search
