@@ -135,29 +135,13 @@ export default function Admin() {
         throw new Error('Cannot delete the last admin user');
       }
 
-      // Delete user's role first
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .delete()
-        .eq('user_id', userId);
+      // Call the handle_user_deletion function
+      const { error: deleteError } = await supabase
+        .rpc('handle_user_deletion', {
+          user_id: userId
+        });
 
-      if (roleError) throw roleError;
-
-      // Delete user's profile (this will cascade to related data)
-      const { error: profileError } = await supabase
-        .from('user_profiles')
-        .delete()
-        .eq('user_id', userId);
-
-      if (profileError) throw profileError;
-
-      // Mark user as deleted in auth.users (we can't directly delete from auth.users)
-      const { error: banError } = await supabase
-        .from('user_profiles')
-        .update({ banned: true, deleted_at: new Date().toISOString() })
-        .eq('user_id', userId);
-
-      if (banError) throw banError;
+      if (deleteError) throw deleteError;
 
       // Remove user from local state
       setUsers(users.filter(user => user.id !== userId));

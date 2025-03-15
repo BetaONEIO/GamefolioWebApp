@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Home, Trophy, User, Settings as SettingsIcon, Compass, Shield } from 'lucide-react';
+import { Home, Trophy, User, Settings as SettingsIcon, Shield } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 

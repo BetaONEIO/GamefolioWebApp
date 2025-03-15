@@ -1,85 +1,57 @@
 import React, { useState, useEffect } from 'react';
-import { Trophy, Users, TrendingUp } from 'lucide-react';
+import { Trophy, Users, TrendingUp, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { DEFAULT_COVERS, DEFAULT_COVER } from '../lib/igdb';
 
-interface TrendingGame {
-  id: string;
+interface Game {
   name: string;
-  thumbnail: string;
-  activePlayers: number;
   clipCount: number;
+  activePlayers: number;
   trending: number;
+  coverUrl: string;
 }
 
-const defaultThumbnails = [
-  'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400',
-  'https://images.unsplash.com/photo-1542751110-97427bbecf20?w=400',
-  'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400'
-];
-
 export default function TrendingGames() {
-  const [games, setGames] = useState<TrendingGame[]>([]);
+  const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     loadTrendingGames();
-  }, []);
+  }, [retryCount]);
 
   async function loadTrendingGames() {
     try {
       setLoading(true);
+      setError(null);
       
-      const { data, error } = await supabase.rpc('get_trending_games');
+      // Get trending games from Supabase
+      const { data: gamesData, error: gamesError } = await supabase.rpc('get_trending_games');
 
-      if (error) {
-        // Fallback to basic query if RPC fails
-        const { data: basicData, error: basicError } = await supabase
-          .from('clips')
-          .select('game')
-          .order('created_at', { ascending: false });
+      if (gamesError) throw gamesError;
 
-        if (basicError) throw basicError;
-
-        // Count unique games
-        const gameCounts = basicData.reduce((acc: Record<string, number>, curr) => {
-          acc[curr.game] = (acc[curr.game] || 0) + 1;
-          return acc;
-        }, {});
-
-        // Convert to array and sort
-        const sortedGames = Object.entries(gameCounts)
-          .sort(([, a], [, b]) => b - a)
-          .slice(0, 4)
-          .map(([game, count], index) => ({
-            id: index.toString(),
-            name: game,
-            thumbnail: defaultThumbnails[index % defaultThumbnails.length],
-            activePlayers: Math.floor(Math.random() * 200000) + 50000,
-            clipCount: count,
-            trending: Math.floor(Math.random() * 40) + 10
-          }));
-
-        setGames(sortedGames);
-        return;
-      }
-
-      const trendingGames: TrendingGame[] = data.map((game: any, index: number) => ({
-        id: index.toString(),
+      // Transform games data
+      const transformedGames: Game[] = (gamesData || []).map((game: any) => ({
         name: game.game,
-        thumbnail: defaultThumbnails[index % defaultThumbnails.length],
-        activePlayers: Math.floor(Math.random() * 200000) + 50000,
         clipCount: game.clip_count,
-        trending: Math.floor(Math.random() * 40) + 10
+        activePlayers: Math.floor(Math.random() * 200000) + 50000, // Mock data
+        trending: Math.floor(Math.random() * 40) + 10, // Mock data
+        coverUrl: DEFAULT_COVERS[game.game] || DEFAULT_COVER
       }));
 
-      setGames(trendingGames);
+      setGames(transformedGames);
     } catch (error) {
       console.error('Error loading trending games:', error);
-      setGames([]); // Set empty array on error
+      setError(error instanceof Error ? error.message : 'Failed to load trending games');
     } finally {
       setLoading(false);
     }
   }
+
+  const handleRetry = () => {
+    setRetryCount(count => count + 1);
+  };
 
   if (loading) {
     return (
@@ -100,12 +72,19 @@ export default function TrendingGames() {
     );
   }
 
-  if (games.length === 0) {
+  if (error) {
     return (
       <div>
         <h2 className="text-2xl font-bold text-white mb-6">Trending Games</h2>
-        <div className="text-center py-12 text-gray-400">
-          <p>No games found. Upload some clips to see trending games!</p>
+        <div className="text-center py-12">
+          <p className="text-red-500 mb-4">{error}</p>
+          <button
+            onClick={handleRetry}
+            className="bg-[#9FE64F] hover:bg-[#8FD63F] text-black px-6 py-2 rounded-lg flex items-center space-x-2 mx-auto"
+          >
+            <TrendingUp className="w-5 h-5" />
+            <span>Try Again</span>
+          </button>
         </div>
       </div>
     );
@@ -117,14 +96,17 @@ export default function TrendingGames() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {games.map((game) => (
           <div
-            key={game.id}
+            key={game.name}
             className="bg-gray-900 rounded-lg overflow-hidden hover:ring-2 hover:ring-[#9FE64F] transition-all"
           >
             <div className="aspect-video relative">
               <img
-                src={game.thumbnail}
+                src={game.coverUrl}
                 alt={game.name}
                 className="w-full h-full object-cover"
+                loading="eager"
+                decoding="async"
+                fetchpriority="high"
               />
               <div className="absolute top-2 right-2 bg-[#9FE64F] text-black px-2 py-1 rounded-full text-sm font-medium flex items-center space-x-1">
                 <TrendingUp className="w-4 h-4" />

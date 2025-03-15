@@ -28,31 +28,26 @@ export default function ClipGrid({ clips, onUpdate }: ClipGridProps) {
             <div className="aspect-video relative group">
               {/* Video Thumbnail */}
               <div className="w-full h-full bg-gray-800">
-                {clip.thumbnail ? (
-                  <img
-                    src={clip.thumbnail}
-                    alt={clip.title}
-                    className="w-full h-full object-cover"
-                    loading="eager"
-                    decoding="async"
-                    fetchpriority="high"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-gray-800">
-                    <Play className="w-12 h-12 text-gray-600" />
-                  </div>
-                )}
-              </div>
-
-              {/* Hover Overlay */}
-              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <button 
-                  className="bg-[#9FE64F] text-black px-6 py-3 rounded-full hover:bg-[#8FD63F] transition-colors flex items-center space-x-2"
-                  onClick={() => setSelectedClip(clip)}
-                >
-                  <Play className="w-5 h-5" />
-                  <span>Watch Clip</span>
-                </button>
+                <img
+                  src={clip.thumbnail}
+                  alt={clip.title}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                  onError={(e) => {
+                    // If thumbnail fails, use video URL as poster
+                    const img = e.target as HTMLImageElement;
+                    img.src = clip.videoUrl;
+                  }}
+                />
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <button 
+                    className="bg-[#9FE64F] text-black px-6 py-3 rounded-full hover:bg-[#8FD63F] transition-colors flex items-center space-x-2"
+                    onClick={() => setSelectedClip(clip)}
+                  >
+                    <Play className="w-5 h-5" />
+                    <span>Watch Clip</span>
+                  </button>
+                </div>
               </div>
             </div>
             
@@ -64,8 +59,7 @@ export default function ClipGrid({ clips, onUpdate }: ClipGridProps) {
                       src={clip.userAvatar || getAvatarUrl(clip.username)}
                       alt={clip.username}
                       className="w-8 h-8 rounded-full hover:ring-2 hover:ring-[#9FE64F] transition-all"
-                      loading="eager"
-                      decoding="async"
+                      loading="lazy"
                       width="32"
                       height="32"
                     />

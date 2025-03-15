@@ -64,7 +64,7 @@ export default function TopClips() {
         userAvatar: clip.avatar_url || getUserAvatar(clip.username || 'unknown'),
         title: clip.title,
         videoUrl: clip.video_url,
-        thumbnail: clip.thumbnail_url || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800',
+        thumbnail: clip.thumbnail_url || clip.video_url,
         game: clip.game,
         likes: clip.likes || 0,
         comments: clip.comments || 0,

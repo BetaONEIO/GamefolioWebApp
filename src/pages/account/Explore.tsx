@@ -12,6 +12,38 @@ interface Game {
   coverUrl: string;
 }
 
+// Game cover images mapping
+const GAME_COVERS: Record<string, string> = {
+  'Valorant': 'https://cdn.cloudflare.steamstatic.com/steam/apps/2284190/header.jpg',
+  'Counter-Strike 2': 'https://cdn.cloudflare.steamstatic.com/steam/apps/730/header.jpg',
+  'Apex Legends': 'https://cdn.cloudflare.steamstatic.com/steam/apps/1172470/header.jpg',
+  'Fortnite': 'https://cdn.akamai.steamstatic.com/steam/apps/1665460/header.jpg',
+  'Call of Duty: Warzone': 'https://cdn.cloudflare.steamstatic.com/steam/apps/1962663/header.jpg',
+  'League of Legends': 'https://images.contentstack.io/v3/assets/blt731acb42bb3d1659/blt9a2715ced150cb6c/5ef1374f6aaf2924fb240ba5/league-client-update.jpg',
+  'Dota 2': 'https://cdn.cloudflare.steamstatic.com/steam/apps/570/header.jpg',
+  'Overwatch 2': 'https://cdn.cloudflare.steamstatic.com/steam/apps/2357570/header.jpg',
+  'Minecraft': 'https://cdn.cloudflare.steamstatic.com/steam/apps/1672970/header.jpg',
+  'Grand Theft Auto V': 'https://cdn.cloudflare.steamstatic.com/steam/apps/271590/header.jpg',
+  'Elden Ring': 'https://cdn.cloudflare.steamstatic.com/steam/apps/1245620/header.jpg',
+  'Cyberpunk 2077': 'https://cdn.cloudflare.steamstatic.com/steam/apps/1091500/header.jpg',
+  'Baldur\'s Gate 3': 'https://cdn.cloudflare.steamstatic.com/steam/apps/1086940/header.jpg',
+  'Starfield': 'https://cdn.cloudflare.steamstatic.com/steam/apps/1716740/header.jpg',
+  'Diablo IV': 'https://blz-contentstack-images.akamaized.net/v3/assets/blt77f4425de611b362/blt6d7b0fd8453e72b9/646e720a71d2143e3e4da6b5/d4-open-graph_001.jpg',
+  'World of Warcraft': 'https://blz-contentstack-images.akamaized.net/v3/assets/blt3452e3b114fab0cd/bltd4f5d41c1022ed6d/6384ae4746dd6510aa3137fd/WoW_WotLK_Social-Thumbnail_JP.png',
+  'Destiny 2': 'https://cdn.cloudflare.steamstatic.com/steam/apps/1085660/header.jpg',
+  'Rainbow Six Siege': 'https://cdn.cloudflare.steamstatic.com/steam/apps/359550/header.jpg',
+  'FIFA 24': 'https://cdn.cloudflare.steamstatic.com/steam/apps/2195250/header.jpg',
+  'NBA 2K24': 'https://cdn.cloudflare.steamstatic.com/steam/apps/2338770/header.jpg',
+  'Rocket League': 'https://cdn.cloudflare.steamstatic.com/steam/apps/252950/header.jpg',
+  'Roblox': 'https://images.rbxcdn.com/d66ae37d46e00a1ecacfe9531986690a.jpg',
+  'Among Us': 'https://cdn.cloudflare.steamstatic.com/steam/apps/945360/header.jpg',
+  'Genshin Impact': 'https://cdn.cloudflare.steamstatic.com/steam/apps/1971870/header.jpg',
+  'Palworld': 'https://cdn.cloudflare.steamstatic.com/steam/apps/1623730/header.jpg'
+};
+
+// Default cover for games without a specific cover
+const DEFAULT_COVER = 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800';
+
 interface Category {
   id: string;
   name: string;
@@ -92,12 +124,12 @@ export default function Explore() {
       if (gamesError) throw gamesError;
 
       // Transform games data
-      const transformedGames: Game[] = (gamesData || []).map((game: any, index: number) => ({
+      const transformedGames: Game[] = (gamesData || []).map((game: any) => ({
         name: game.game,
         clipCount: game.clip_count,
         activePlayers: Math.floor(Math.random() * 200000) + 50000, // Mock data
         trending: Math.floor(Math.random() * 40) + 10, // Mock data
-        coverUrl: `https://images.unsplash.com/photo-${1550745165 + index}?w=400` // Mock covers
+        coverUrl: GAME_COVERS[game.game] || DEFAULT_COVER
       }));
 
       setGames(transformedGames);
@@ -218,6 +250,7 @@ export default function Explore() {
                   src={game.coverUrl}
                   alt={game.name}
                   className="w-full h-full object-cover"
+                  loading="lazy"
                 />
                 <div className="absolute top-2 right-2 bg-[#9FE64F] text-black px-2 py-1 rounded-full text-sm font-medium flex items-center space-x-1">
                   <TrendingUp className="w-4 h-4" />
@@ -259,12 +292,13 @@ export default function Explore() {
           </div>
         ) : error ? (
           <div className="text-center py-12">
-            <p className="text-red-500">{error}</p>
+            <p className="text-red-500 mb-4">{error}</p>
             <button
               onClick={loadGamesAndClips}
-              className="mt-4 text-[#9FE64F] hover:text-[#8FD63F]"
+              className="bg-[#9FE64F] hover:bg-[#8FD63F] text-black px-6 py-2 rounded-lg flex items-center space-x-2 mx-auto"
             >
-              Try Again
+              <TrendingUp className="w-5 h-5" />
+              <span>Try Again</span>
             </button>
           </div>
         ) : clips.length > 0 ? (
